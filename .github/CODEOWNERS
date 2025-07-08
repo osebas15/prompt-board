@@ -1,0 +1,29 @@
+# Code ownership rules for prompt-board
+
+# Global owners - these users will be requested for review on all PRs
+* @sebastianaguirre
+
+# GitHub workflows and CI/CD
+.github/ @sebastianaguirre
+
+# Supabase configuration and migrations
+supabase/ @sebastianaguirre
+
+# Package configuration
+package.json @sebastianaguirre
+package-lock.json @sebastianaguirre
+
+# Docker and deployment files
+Dockerfile* @sebastianaguirre
+docker-compose*.yml @sebastianaguirre
+
+# TypeScript configuration
+tsconfig*.json @sebastianaguirre
+vite.config.ts @sebastianaguirre
+vitest.config.ts @sebastianaguirre
+
+# Core application code (you can add team members here)
+src/ @sebastianaguirre
+
+# Documentation
+*.md @sebastianaguirre
