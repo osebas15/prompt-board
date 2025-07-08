@@ -9,9 +9,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "docker:build": "docker build -t prompt-board .",
-    "docker:run": "docker run -p 3000:3000 --env-file .env prompt-board",
+    "docker:run": "docker run -p 3000:3000 --env-file .env.production prompt-board",
     "docker:dev": "docker-compose --profile dev up",
-    "docker:prod": "docker-compose up --build",
+    "docker:prod": "docker-compose --profile prod up --build",
+    "docker:local": "docker-compose -f docker-compose.local.yml --profile local up",
     "docker:stop": "docker-compose down",
     "docker:logs": "docker-compose logs -f"
   },
