@@ -246,7 +246,7 @@ Acceptance Criteria:
 Definition of Done:
 ------------------
 - [ ] All acceptance criteria met
-- [ ] Unit tests for API integration and conversation logic
+- [ ] Unit tests written with Jest for API integration and conversation logic
 - [ ] Integration tests for complete conversation flows
 - [ ] Performance tests for large conversations
 - [ ] Security review for API key handling

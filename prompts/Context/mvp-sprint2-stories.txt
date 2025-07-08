@@ -219,7 +219,7 @@ Acceptance Criteria:
 Definition of Done:
 ------------------
 - [ ] All acceptance criteria met
-- [ ] Unit tests for all components and utilities
+- [ ] Unit tests written with Jest for all components and utilities
 - [ ] Integration tests for template CRUD operations
 - [ ] Performance tests for search and filtering
 - [ ] Code reviewed and approved

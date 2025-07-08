@@ -17,7 +17,7 @@ Epic: Development Environment Setup
 Acceptance Criteria:
 - [ ] Docker development environment works
 - [ ] npm scripts for dev, build, test work correctly
-- [ ] Vitest testing framework is configured and running
+- [ ] Jest testing framework is configured and running
 - [ ] ESLint and TypeScript checking pass
 - [ ] Hot reloading works for React components
 
@@ -29,7 +29,7 @@ Acceptance Criteria:
 - And I can view test results in a UI
 
 Acceptance Criteria:
-- [ ] Vitest configured with jsdom environment
+- [ ] Jest configured with jsdom environment
 - [ ] React Testing Library setup complete
 - [ ] Coverage reporting generates HTML reports
 - [ ] Test UI is accessible at localhost

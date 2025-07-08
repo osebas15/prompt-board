@@ -265,7 +265,7 @@ Definition of Done:
 - [ ] All acceptance criteria met
 - [ ] Performance benchmarks achieved
 - [ ] Security audit completed
-- [ ] Full test coverage including end-to-end tests
+- [ ] Full test coverage with Jest including end-to-end tests
 - [ ] Production deployment successful
 - [ ] Monitoring and alerting configured
 - [ ] Documentation complete and reviewed
@@ -280,7 +280,7 @@ MVP Completion Criteria:
 - [ ] Functional LLM integration with conversations
 - [ ] Context management with file support
 - [ ] Production deployment with monitoring
-- [ ] 80%+ test coverage across all features
+- [ ] 80%+ test coverage with Jest across all features
 - [ ] Performance targets met (< 2s load times)
 - [ ] Security best practices implemented
 - [ ] User documentation and guides complete

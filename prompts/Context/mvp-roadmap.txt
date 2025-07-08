@@ -9,7 +9,7 @@ MVP Duration: 8 weeks (4 sprints × 2 weeks each)
 
 Sprint 1 (Weeks 1-2): Foundation & Basic UI
 --------------------------------------------
-- Set up development environment and testing framework
+- Set up development environment and Jest testing framework
 - Create basic application structure and routing
 - Implement responsive UI layout with Tailwind CSS
 - Set up Supabase authentication
@@ -57,7 +57,7 @@ Technical Priorities:
 1. Security: HTTPS, secure API key storage, input validation
 2. Performance: Efficient API calls, caching, lazy loading
 3. User Experience: Responsive design, intuitive navigation, fast feedback
-4. Testing: Comprehensive test coverage, CI/CD pipeline
+4. Testing: Comprehensive test coverage with Jest, CI/CD pipeline
 5. Maintainability: Clean code structure, TypeScript, documentation
 
 Success Criteria:

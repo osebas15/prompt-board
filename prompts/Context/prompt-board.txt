@@ -1,0 +1,64 @@
+Prompt Board: Technical & Feature Overview
+=========================================
+
+Project Summary:
+----------------
+Prompt Board is a React-based web client for interacting with LLMs (starting with Google Gemini). It is designed for power users who want to manage, automate, and organize their LLM workflows. The MVP is single-user and private, but the architecture will support future multi-user and multi-LLM expansion.
+
+Core Features (MVP):
+--------------------
+1. **Authentication**
+   - Simple login (email/password or magic link).
+   - Only the owner (you) can access the app in MVP.
+   - Secure backend/API for LLM requests and file storage.
+
+2. **Deployment**
+   - Live on the internet (Vercel, Netlify, or custom VPS).
+   - CI pipeline (GitHub)
+   - HTTPS enforced.
+
+3. **Prompt Template Management**
+   - Create, save, edit, and delete prompt templates.
+   - Organize templates by tags or categories.
+   - Quickly insert templates into conversations.
+
+4. **Automated Conversations**
+   - Define and run multi-step prompt chains ("macros") to automate complex tasks.
+   - Save and reuse conversation flows.
+   - Schedule or trigger automations (future).
+
+5. **Context Management**
+   - Create and switch between named contexts (e.g., projects, topics).
+   - Cache files and upload them to the LLM as needed.
+   - Maintain a running conversation summary for each context.
+   - Attach files, notes, or metadata to a context.
+
+Post-MVP / Future Features:
+---------------------------
+- Support for additional LLM providers (Anthropic, open-source, etc.).
+- Multi-user support with roles and permissions.
+- Team/collaborative workspaces.
+- Advanced automation (webhooks, API triggers, scheduled jobs).
+- Analytics and usage tracking.
+- Plugin system for custom tools and integrations.
+
+Technical Stack:
+----------------
+- **Frontend:** React (with hooks), TypeScript
+- **Source Control** GitHub
+- **UI:** Tailwind CSS
+- **Testing:** Jest
+- **Auth:** Supabase
+- **LLM API:** Google Gemini (via API key)
+- **Storage:** Supabase
+- **Deployment:** Netlify and Supabase, locally developed in a docker container (will move to VPS post-MVP)
+
+Security & Privacy:
+-------------------
+- All data and files are private to the owner in MVP.
+- API keys and secrets stored securely (env vars, server-side only).
+- HTTPS enforced for all endpoints.
+
+Summary:
+--------
+Prompt Board is a private, extensible LLM client for power users, focused on template management, automation, and context-rich conversations. The MVP is single-user, but the foundation is ready for future expansion to teams and multiple LLMs.
