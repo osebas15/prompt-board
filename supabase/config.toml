@@ -303,7 +303,7 @@ deno_version = 1
 # secret_key = "env(SECRET_VALUE)"
 
 [analytics]
-enabled = true
+enabled = false
 port = 54327
 # Configure one of the supported backends: `postgres`, `bigquery`.
 backend = "postgres"
@@ -320,46 +320,3 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
-
-# Local development settings
-[analytics]
-enabled = false
-
-[api]
-enabled = true
-port = 54321
-schemas = ["public", "graphql_public"]
-extra_search_path = ["public", "extensions"]
-max_rows = 1000
-
-[auth]
-enabled = true
-# Optional: Configure external auth providers for local development
-# [auth.external.github]
-# enabled = false
-# client_id = "env(SUPABASE_AUTH_GITHUB_CLIENT_ID)"
-# secret = "env(SUPABASE_AUTH_GITHUB_SECRET)"
-
-[storage]
-enabled = true
-file_size_limit = "50MiB"
-
-[db]
-port = 54322
-shadow_port = 54320
-major_version = 15
-
-[studio]
-enabled = true
-port = 54323
-
-[inbucket]
-enabled = true
-port = 54324
-
-[edge_runtime]
-enabled = true
-port = 54325
-
-[logflare]
-enabled = false
