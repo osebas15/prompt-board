@@ -27,8 +27,14 @@ function setup_tailwind() {
 
   # Add Tailwind directives to src/index.css
   if [ -f "src/index.css" ]; then
-    print_step "Adding Tailwind directives to src/index.css..."
-    echo -e "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n$(cat src/index.css)" > src/index.css
+    # Check if Tailwind directives are already present
+    if ! grep -q "@tailwind base" src/index.css; then
+      print_step "Adding Tailwind directives to src/index.css..."
+      echo -e "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n$(cat src/index.css)" > src/index.css
+      print_success "Tailwind directives added to src/index.css!"
+    else
+      print_info "Tailwind directives already exist in src/index.css"
+    fi
   fi
 
   print_success "Tailwind CSS dependencies installed!"

@@ -42,15 +42,16 @@ function create_env_file() {
 
 function check_gitignore() {
   if [ -f ".gitignore" ]; then
-    if ! grep -q "^\.env$" .gitignore; then
-      print_step "Adding .env to .gitignore..."
-      echo ".env" >> .gitignore
-      print_success ".env added to .gitignore"
+    # Check if any .env pattern already exists (*.env*, .env*, or .env)
+    if ! grep -q "\.env" .gitignore; then
+      print_step "Adding *.env* to .gitignore..."
+      echo "*.env*" >> .gitignore
+      print_success "*.env* added to .gitignore"
     else
-      print_info ".env is already in .gitignore"
+      print_info "Environment files pattern is already in .gitignore"
     fi
   else
-    print_warning ".gitignore not found. Please ensure .env is added to .gitignore manually."
+    print_warning ".gitignore not found. Please ensure *.env* is added to .gitignore manually."
   fi
 }
 
