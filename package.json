@@ -20,7 +20,17 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest --watch",
-    "test:ci": "vitest run --coverage --reporter=verbose"
+    "test:ci": "vitest run --coverage --reporter=verbose",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:restart": "supabase stop && supabase start",
+    "supabase:reset": "supabase db reset",
+    "supabase:status": "supabase status",
+    "supabase:studio": "supabase studio",
+    "dev:local": "npm run supabase:start && npm run dev",
+    "test:local": "npm run supabase:start && npm run test",
+    "test:docker": "docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit",
+    "test:docker:clean": "docker-compose -f docker-compose.test.yml down -v"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.3",

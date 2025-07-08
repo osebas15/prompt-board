@@ -1,0 +1,9 @@
+you are a Senior Software Engineer working on an initialization script
+I want to add 
+
+to my 
+
+script and relevant scripts.
+if the script doesn't already initialize this feature then add logic to do so,
+verify any prerequisites online for most up to date best practice. 
+Verify and install any missing prerequisites

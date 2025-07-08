@@ -18,12 +18,14 @@ SETUP_TESTING=true
 SETUP_DOCKER=true
 SETUP_GIT=true
 SETUP_ENV=true
+SETUP_SUPABASE=true
 TOOLS_ONLY=false
 PROJECT_ONLY=false
 TESTING_ONLY=false
 DOCKER_ONLY=false
 GIT_ONLY=false
 ENV_ONLY=false
+SUPABASE_ONLY=false
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -39,6 +41,7 @@ while [[ $# -gt 0 ]]; do
       SETUP_DOCKER=false
       SETUP_GIT=false
       SETUP_ENV=false
+      SETUP_SUPABASE=false
       shift
       ;;
     --project-only)
@@ -48,6 +51,7 @@ while [[ $# -gt 0 ]]; do
       SETUP_DOCKER=false
       SETUP_GIT=false
       SETUP_ENV=false
+      SETUP_SUPABASE=false
       shift
       ;;
     --testing-only)
@@ -57,6 +61,7 @@ while [[ $# -gt 0 ]]; do
       SETUP_DOCKER=false
       SETUP_GIT=false
       SETUP_ENV=false
+      SETUP_SUPABASE=false
       shift
       ;;
     --docker-only)
@@ -66,6 +71,7 @@ while [[ $# -gt 0 ]]; do
       SETUP_TESTING=false
       SETUP_GIT=false
       SETUP_ENV=false
+      SETUP_SUPABASE=false
       shift
       ;;
     --git-only)
@@ -75,6 +81,7 @@ while [[ $# -gt 0 ]]; do
       SETUP_TESTING=false
       SETUP_DOCKER=false
       SETUP_ENV=false
+      SETUP_SUPABASE=false
       shift
       ;;
     --env-only)
@@ -84,6 +91,16 @@ while [[ $# -gt 0 ]]; do
       SETUP_TESTING=false
       SETUP_DOCKER=false
       SETUP_GIT=false
+      shift
+      ;;
+    --supabase-only)
+      SUPABASE_ONLY=true
+      INSTALL_TOOLS=false
+      SETUP_PROJECT=false
+      SETUP_TESTING=false
+      SETUP_DOCKER=false
+      SETUP_GIT=false
+      SETUP_ENV=false
       shift
       ;;
     --skip-tools)
@@ -108,6 +125,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-env)
       SETUP_ENV=false
+      shift
+      ;;
+    --skip-supabase)
+      SETUP_SUPABASE=false
       shift
       ;;
     *)
@@ -158,6 +179,13 @@ if [[ "$SETUP_ENV" == "true" ]]; then
   echo
 fi
 
+# Set up local Supabase development
+if [[ "$SETUP_SUPABASE" == "true" ]]; then
+  source "$SCRIPT_DIR/scripts/setup-supabase.sh"
+  setup_local_supabase
+  echo
+fi
+
 # Set up Git (do this last to include all files)
 if [[ "$SETUP_GIT" == "true" ]]; then
   source "$SCRIPT_DIR/scripts/setup-git.sh"
@@ -166,6 +194,6 @@ if [[ "$SETUP_GIT" == "true" ]]; then
 fi
 
 # Show final instructions
-if [[ "$TOOLS_ONLY" == "false" && "$PROJECT_ONLY" == "false" && "$TESTING_ONLY" == "false" && "$DOCKER_ONLY" == "false" && "$GIT_ONLY" == "false" && "$ENV_ONLY" == "false" ]]; then
+if [[ "$TOOLS_ONLY" == "false" && "$PROJECT_ONLY" == "false" && "$TESTING_ONLY" == "false" && "$DOCKER_ONLY" == "false" && "$GIT_ONLY" == "false" && "$ENV_ONLY" == "false" && "$SUPABASE_ONLY" == "false" ]]; then
   show_final_instructions
 fi

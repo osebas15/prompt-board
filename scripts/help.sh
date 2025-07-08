@@ -13,25 +13,29 @@ ${yellow}Usage:${reset}
 
 ${yellow}Options:${reset}
   -h, --help        Show this help message
-  --tools-only      Install only the required tools (Node.js, Docker, Git, GitHub CLI)
-  --project-only    Set up only the project (Vite, Tailwind, Supabase)
+  --tools-only      Install only the required tools (Node.js, Docker, Git, GitHub CLI, Supabase CLI)
+  --project-only    Set up only the project (Vite, Tailwind, Supabase client)
   --testing-only    Set up only testing configuration (Vitest, React Testing Library)
   --docker-only     Set up only Docker configuration
   --git-only        Set up only Git and GitHub
   --env-only        Set up only environment files
+  --supabase-only   Set up only local Supabase development and testing
   --skip-tools      Skip tool installation
   --skip-project    Skip project setup
   --skip-testing    Skip testing setup
   --skip-docker     Skip Docker setup
   --skip-git        Skip Git setup
   --skip-env        Skip environment setup
+  --skip-supabase   Skip local Supabase setup
 
 ${yellow}Examples:${reset}
   ./init.sh                    # Full setup (recommended for new projects)
   ./init.sh --tools-only       # Install tools only
   ./init.sh --testing-only     # Set up testing configuration only
+  ./init.sh --supabase-only    # Set up local Supabase development only
   ./init.sh --skip-tools       # Skip tool installation, do everything else
   ./init.sh --skip-testing     # Skip testing setup
+  ./init.sh --skip-supabase    # Skip local Supabase setup
   ./init.sh --docker-only      # Create Docker files only
 
 ${yellow}Manual steps required after setup:${reset}
@@ -86,6 +90,30 @@ ${yellow}Testing Commands:${reset}
 EOM
 }
 
+function show_supabase_commands() {
+  cat <<EOM
+${yellow}Local Supabase Development:${reset}
+# Start local Supabase stack
+${green}npm run supabase:start${reset}
+
+# Access Supabase Studio (local dashboard)
+${green}open http://localhost:54323${reset}
+
+# Start development with local Supabase
+${green}npm run dev:local${reset}
+
+# Run tests with local database
+${green}npm run test:local${reset}
+
+# Reset local database (apply migrations)
+${green}npm run supabase:reset${reset}
+
+# Stop local Supabase
+${green}npm run supabase:stop${reset}
+
+EOM
+}
+
 function show_final_instructions() {
   echo
   print_success "Setup completed successfully!"
@@ -94,15 +122,22 @@ function show_final_instructions() {
   show_docker_commands
   show_development_commands
   show_testing_commands
+  show_supabase_commands
+  show_supabase_commands
   
   cat <<EOM
 ${yellow}Next Steps:${reset}
-1. Create your Supabase project and get your API keys
-2. Create your Netlify account for deployment
-3. Get your Google Gemini API key
-4. Copy .env.example to .env and fill in your actual values
-5. Start developing: ${green}npm run dev${reset}
-6. Run tests to verify setup: ${green}npm run test${reset}
+1. Start local Supabase: ${green}npm run supabase:start${reset}
+2. Access Supabase Studio: ${green}open http://localhost:54323${reset}
+3. Create your production Supabase project at ${blue}https://app.supabase.com/${reset}
+4. Get your Google Gemini API key
+5. Copy .env.example to .env.production and fill in your production values
+6. Start developing locally: ${green}npm run dev:local${reset}
+7. Run tests: ${green}npm run test:local${reset}
+
+${yellow}For production deployment:${reset}
+- Update .env.production with your live Supabase project URL and keys
+- Deploy using Docker: ${green}npm run docker:prod${reset}
 
 ${yellow}Need help?${reset} Run ${green}./init.sh --help${reset}
 

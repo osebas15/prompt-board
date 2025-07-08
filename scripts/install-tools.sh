@@ -142,6 +142,31 @@ function install_gh() {
   print_success "GitHub CLI installed successfully!"
 }
 
+function install_supabase_cli() {
+  print_step "Installing Supabase CLI..."
+  
+  if [[ "$(get_os)" == "macos" ]]; then
+    if has_homebrew; then
+      brew install supabase/tap/supabase
+    else
+      print_error "Homebrew not found. Please install Homebrew first: https://brew.sh/"
+      exit 1
+    fi
+  elif [[ "$(get_os)" == "linux" ]]; then
+    # Linux installation
+    print_step "Installing Supabase CLI for Linux..."
+    # Download and install the binary
+    curl -fsSL https://github.com/supabase/cli/releases/latest/download/supabase_linux_amd64.tar.gz | tar -xz
+    sudo mv supabase /usr/local/bin/supabase
+    sudo chmod +x /usr/local/bin/supabase
+  else
+    print_warning "Unsupported OS. Installing via npm as fallback..."
+    npm install -g supabase
+  fi
+  
+  print_success "Supabase CLI installed successfully!"
+}
+
 # Main function to install all tools
 function install_all_tools() {
   print_info "Checking and installing required tools..."
@@ -180,6 +205,11 @@ function install_all_tools() {
   # 6. GitHub CLI
   if ! check_command gh; then
     install_gh
+  fi
+
+  # 7. Supabase CLI
+  if ! check_command supabase; then
+    install_supabase_cli
   fi
 
   print_success "All required tools are installed!"

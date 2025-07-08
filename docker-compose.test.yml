@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  # Test application with local Supabase
+  app-test:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=test
+      - VITE_SUPABASE_URL=http://localhost:54321
+      - VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+    command: npm run test:ci
+    depends_on:
+      - supabase-start
+    networks:
+      - test-network
+
+  # Helper service to ensure Supabase is started
+  supabase-start:
+    image: supabase/cli:latest
+    volumes:
+      - .:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /app
+    command: supabase start
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge
