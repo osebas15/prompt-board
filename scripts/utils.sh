@@ -40,6 +40,11 @@ function print_step() {
   echo -e "${yellow}$1${reset}"
 }
 
+function print_section() {
+  echo -e "\n${blue}$1${reset}"
+  echo -e "${blue}$(printf '=%.0s' {1..50})${reset}"
+}
+
 # Check if file exists and skip creation
 function skip_if_exists() {
   local file_path="$1"

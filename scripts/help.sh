@@ -15,11 +15,13 @@ ${yellow}Options:${reset}
   -h, --help        Show this help message
   --tools-only      Install only the required tools (Node.js, Docker, Git, GitHub CLI)
   --project-only    Set up only the project (Vite, Tailwind, Supabase)
+  --testing-only    Set up only testing configuration (Vitest, React Testing Library)
   --docker-only     Set up only Docker configuration
   --git-only        Set up only Git and GitHub
   --env-only        Set up only environment files
   --skip-tools      Skip tool installation
   --skip-project    Skip project setup
+  --skip-testing    Skip testing setup
   --skip-docker     Skip Docker setup
   --skip-git        Skip Git setup
   --skip-env        Skip environment setup
@@ -27,7 +29,9 @@ ${yellow}Options:${reset}
 ${yellow}Examples:${reset}
   ./init.sh                    # Full setup (recommended for new projects)
   ./init.sh --tools-only       # Install tools only
+  ./init.sh --testing-only     # Set up testing configuration only
   ./init.sh --skip-tools       # Skip tool installation, do everything else
+  ./init.sh --skip-testing     # Skip testing setup
   ./init.sh --docker-only      # Create Docker files only
 
 ${yellow}Manual steps required after setup:${reset}
@@ -70,6 +74,18 @@ ${yellow}Local Development (without Docker):${reset}
 EOM
 }
 
+function show_testing_commands() {
+  cat <<EOM
+${yellow}Testing Commands:${reset}
+- Run all tests: ${green}npm run test${reset}
+- Run tests in watch mode: ${green}npm run test:watch${reset}
+- Run tests with coverage: ${green}npm run test:coverage${reset}
+- Run tests with UI: ${green}npm run test:ui${reset}
+- Generate coverage report: ${green}npm run test:coverage:html${reset}
+
+EOM
+}
+
 function show_final_instructions() {
   echo
   print_success "Setup completed successfully!"
@@ -77,6 +93,7 @@ function show_final_instructions() {
   
   show_docker_commands
   show_development_commands
+  show_testing_commands
   
   cat <<EOM
 ${yellow}Next Steps:${reset}
@@ -85,6 +102,7 @@ ${yellow}Next Steps:${reset}
 3. Get your Google Gemini API key
 4. Copy .env.example to .env and fill in your actual values
 5. Start developing: ${green}npm run dev${reset}
+6. Run tests to verify setup: ${green}npm run test${reset}
 
 ${yellow}Need help?${reset} Run ${green}./init.sh --help${reset}
 

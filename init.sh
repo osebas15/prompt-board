@@ -14,11 +14,13 @@ source "$SCRIPT_DIR/scripts/help.sh"
 # Default options
 INSTALL_TOOLS=true
 SETUP_PROJECT=true
+SETUP_TESTING=true
 SETUP_DOCKER=true
 SETUP_GIT=true
 SETUP_ENV=true
 TOOLS_ONLY=false
 PROJECT_ONLY=false
+TESTING_ONLY=false
 DOCKER_ONLY=false
 GIT_ONLY=false
 ENV_ONLY=false
@@ -33,6 +35,7 @@ while [[ $# -gt 0 ]]; do
     --tools-only)
       TOOLS_ONLY=true
       SETUP_PROJECT=false
+      SETUP_TESTING=false
       SETUP_DOCKER=false
       SETUP_GIT=false
       SETUP_ENV=false
@@ -41,6 +44,16 @@ while [[ $# -gt 0 ]]; do
     --project-only)
       PROJECT_ONLY=true
       INSTALL_TOOLS=false
+      SETUP_TESTING=false
+      SETUP_DOCKER=false
+      SETUP_GIT=false
+      SETUP_ENV=false
+      shift
+      ;;
+    --testing-only)
+      TESTING_ONLY=true
+      INSTALL_TOOLS=false
+      SETUP_PROJECT=false
       SETUP_DOCKER=false
       SETUP_GIT=false
       SETUP_ENV=false
@@ -50,6 +63,7 @@ while [[ $# -gt 0 ]]; do
       DOCKER_ONLY=true
       INSTALL_TOOLS=false
       SETUP_PROJECT=false
+      SETUP_TESTING=false
       SETUP_GIT=false
       SETUP_ENV=false
       shift
@@ -58,6 +72,7 @@ while [[ $# -gt 0 ]]; do
       GIT_ONLY=true
       INSTALL_TOOLS=false
       SETUP_PROJECT=false
+      SETUP_TESTING=false
       SETUP_DOCKER=false
       SETUP_ENV=false
       shift
@@ -66,6 +81,7 @@ while [[ $# -gt 0 ]]; do
       ENV_ONLY=true
       INSTALL_TOOLS=false
       SETUP_PROJECT=false
+      SETUP_TESTING=false
       SETUP_DOCKER=false
       SETUP_GIT=false
       shift
@@ -76,6 +92,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-project)
       SETUP_PROJECT=false
+      shift
+      ;;
+    --skip-testing)
+      SETUP_TESTING=false
       shift
       ;;
     --skip-docker)
@@ -117,6 +137,13 @@ if [[ "$SETUP_PROJECT" == "true" ]]; then
   echo
 fi
 
+# Set up testing
+if [[ "$SETUP_TESTING" == "true" ]]; then
+  source "$SCRIPT_DIR/scripts/setup-testing.sh"
+  setup_testing
+  echo
+fi
+
 # Set up Docker
 if [[ "$SETUP_DOCKER" == "true" ]]; then
   source "$SCRIPT_DIR/scripts/setup-docker.sh"
@@ -139,6 +166,6 @@ if [[ "$SETUP_GIT" == "true" ]]; then
 fi
 
 # Show final instructions
-if [[ "$TOOLS_ONLY" == "false" && "$PROJECT_ONLY" == "false" && "$DOCKER_ONLY" == "false" && "$GIT_ONLY" == "false" && "$ENV_ONLY" == "false" ]]; then
+if [[ "$TOOLS_ONLY" == "false" && "$PROJECT_ONLY" == "false" && "$TESTING_ONLY" == "false" && "$DOCKER_ONLY" == "false" && "$GIT_ONLY" == "false" && "$ENV_ONLY" == "false" ]]; then
   show_final_instructions
 fi
