@@ -1,27 +1,18 @@
-name: Pull Request Validation
+name: PR Check
 
 on:
   pull_request:
     branches: [ main ]
-    types: [opened, synchronize, reopened, ready_for_review]
-
-# Cancel previous runs if a new push occurs
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
-  validate-pr:
-    name: Validate Pull Request
+  check:
+    name: Quick PR Check
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        
+      
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
@@ -31,136 +22,15 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
-    - name: Check for merge conflicts
+    - name: Run quick checks
       run: |
-        git fetch origin main
-        if ! git merge-tree $(git merge-base HEAD origin/main) HEAD origin/main | grep -q "^@@"; then
-          echo "✅ No merge conflicts detected"
-        else
-          echo "❌ Merge conflicts detected"
-          exit 1
-        fi
+        echo "Running lint..."
+        npm run lint
         
-    - name: Validate commit messages
-      run: |
-        # Check if commits follow conventional commit format
-        git log --pretty=format:"%s" origin/main..HEAD | while read line; do
-          if [[ ! $line =~ ^(feat|fix|docs|style|refactor|test|chore|ci)(\(.+\))?: ]]; then
-            echo "❌ Invalid commit message: $line"
-            echo "Please use conventional commit format: https://www.conventionalcommits.org/"
-            exit 1
-          fi
-        done
-        echo "✅ All commit messages are valid"
+        echo "Running tests..."
+        npm run test:run
         
-    - name: Check for TODO/FIXME comments
-      run: |
-        # Allow TODO/FIXME but warn about them
-        todos=$(grep -r "TODO\|FIXME" src/ || true)
-        if [ ! -z "$todos" ]; then
-          echo "⚠️ Found TODO/FIXME comments:"
-          echo "$todos"
-          echo "Consider addressing these before merging"
-        else
-          echo "✅ No TODO/FIXME comments found"
-        fi
-        
-    - name: Run security audit
-      run: npm audit --audit-level=moderate
-      
-    - name: Check bundle size
-      run: |
+        echo "Testing build..."
         npm run build
-        # Check if dist folder size is reasonable (under 10MB)
-        size=$(du -sm dist/ | cut -f1)
-        if [ $size -gt 10 ]; then
-          echo "⚠️ Bundle size is ${size}MB, consider optimizing"
-        else
-          echo "✅ Bundle size is acceptable: ${size}MB"
-        fi
-
-  test-matrix:
-    name: Test Matrix
-    runs-on: ubuntu-latest
-    needs: validate-pr
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
-        test-type: [unit, integration]
-    
-    services:
-      postgres:
-        image: supabase/postgres:15.6.1.147
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-          POSTGRES_DB: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
         
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Install Supabase CLI
-      run: |
-        curl -o- https://raw.githubusercontent.com/supabase/cli/main/install.sh | bash
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
-        
-    - name: Start Supabase (for integration tests)
-      if: matrix.test-type == 'integration'
-      run: |
-        supabase start --debug
-      env:
-        SUPABASE_DB_PASSWORD: postgres
-        
-    - name: Run unit tests
-      if: matrix.test-type == 'unit'
-      run: npm run test:ci -- --reporter=verbose --run src/__tests__/
-      
-    - name: Run integration tests
-      if: matrix.test-type == 'integration'
-      run: npm run test:ci -- --reporter=verbose --run src/test/
-      
-    - name: Upload coverage
-      if: matrix.node-version == '20.x'
-      uses: codecov/codecov-action@v4
-      with:
-        files: ./coverage/lcov.info
-        flags: ${{ matrix.test-type }}-tests
-        name: codecov-${{ matrix.test-type }}-${{ matrix.node-version }}
-
-  required-checks:
-    name: All Required Checks
-    runs-on: ubuntu-latest
-    needs: [validate-pr, test-matrix]
-    if: always()
-    
-    steps:
-    - name: Check all jobs status
-      run: |
-        if [[ "${{ needs.validate-pr.result }}" != "success" ]]; then
-          echo "❌ PR validation failed"
-          exit 1
-        fi
-        if [[ "${{ needs.test-matrix.result }}" != "success" ]]; then
-          echo "❌ Test matrix failed"
-          exit 1
-        fi
-        echo "✅ All required checks passed"
+        echo "✅ All checks passed!"

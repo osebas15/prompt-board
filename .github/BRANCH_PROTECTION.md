@@ -1,148 +1,100 @@
-# Branch Protection Setup Guide
+# Simple CI/CD Setup Guide
 
-This document explains how to set up branch protection rules in GitHub to ensure all tests pass before merging to main.
+This document explains the simplified GitHub Actions setup for running tests on pull requests.
 
-## Required Setup Steps
+## What's Included
 
-### 1. Configure Branch Protection Rules
+### 1. Main Test Workflow (`.github/workflows/test.yml`)
+- **Triggers:** Push to main, Pull requests to main
+- **Steps:** Lint → Test → Build
+- Runs on Node.js 20.x
+- No external services required
 
-Go to your GitHub repository settings and set up the following branch protection rules for the `main` branch:
+### 2. PR Check (`.github/workflows/pr-validation.yml`)
+- **Triggers:** Pull requests to main
+- **Steps:** Quick lint, test, and build verification
+- Fast feedback for contributors
 
-#### Repository Settings → Branches → Add Rule
+### 3. Security Check (`.github/workflows/security.yml`)
+- **Triggers:** Changes to package.json/package-lock.json
+- **Steps:** Basic npm audit
+- Warns about security vulnerabilities
 
-**Branch name pattern:** `main`
+### 4. Deploy (`.github/workflows/deploy.yml`)
+- **Triggers:** Push to main branch
+- **Steps:** Test → Build → Deploy placeholder
+- Ready for your deployment commands
 
-**Protect matching branches:**
-- ✅ Require a pull request before merging
-  - ✅ Require approvals: 1
-  - ✅ Dismiss stale PR approvals when new commits are pushed
-  - ✅ Require review from code owners (if you have a CODEOWNERS file)
-  - ✅ Restrict pushes that create files that change the code owner
+## How It Works
 
-- ✅ Require status checks to pass before merging
-  - ✅ Require branches to be up to date before merging
-  - **Required status checks:**
-    - `Lint Code`
-    - `Run Tests (20.x)`
-    - `Run Tests (22.x)`
-    - `Build Application`
-    - `Validate Pull Request`
-    - `Test Matrix (18.x, unit)`
-    - `Test Matrix (20.x, unit)`
-    - `Test Matrix (22.x, unit)`
-    - `Test Matrix (18.x, integration)`
-    - `Test Matrix (20.x, integration)`
-    - `Test Matrix (22.x, integration)`
-    - `All Required Checks`
+### For Pull Requests:
+1. Developer creates a PR to main
+2. Both `CI Tests` and `PR Check` workflows run
+3. If tests pass, PR is ready for manual review and merge
+4. No automatic blocking - relies on team discipline
 
-- ✅ Require conversation resolution before merging
-- ✅ Require signed commits (optional, for enhanced security)
-- ✅ Require linear history (prevents merge commits)
-- ✅ Require deployments to succeed before merging (if using environments)
+### For Main Branch:
+1. After manual merge to main
+2. `CI Tests` and `Deploy` workflows run
+3. If tests pass, deployment can proceed
 
-**Restrictions:**
-- ✅ Restrict pushes that create files
-- ✅ Do not allow bypassing the above settings
-- ✅ Allow force pushes: Everyone (or restrict to admins only)
-- ✅ Allow deletions: Nobody
+## Best Practices
 
-### 2. Set Up Repository Secrets (if needed)
+Since we don't have branch protection rules, follow these practices:
 
-For deployment workflows, you may need to add secrets:
-
-Go to **Settings → Secrets and variables → Actions**
-
-Common secrets you might need:
-- `CODECOV_TOKEN` - For code coverage reporting
-- `SUPABASE_ACCESS_TOKEN` - For Supabase deployments
-- `DEPLOYMENT_KEY` - For deployment access
-- `SLACK_WEBHOOK` - For notifications
-
-### 3. Set Up Environments (optional)
-
-Go to **Settings → Environments** and create:
-
-- **staging** - For staging deployments
-- **production** - For production deployments
-  - Add protection rules:
-    - Required reviewers: 1-2 people
-    - Wait timer: 5 minutes
-    - Deployment branches: `main` only
-
-### 4. Create CODEOWNERS File (optional)
-
-Create `.github/CODEOWNERS` to define code ownership:
-
-```
-# Global owners
-* @your-username
-
-# Frontend specific
-src/components/ @frontend-team
-src/hooks/ @frontend-team
-
-# Backend/API specific
-src/api/ @backend-team
-supabase/ @backend-team
-
-# Configuration files
-.github/ @devops-team
-docker* @devops-team
-package.json @senior-dev
+### Before Creating a PR:
+```bash
+# Run locally first
+npm run lint
+npm run test:run
+npm run build
 ```
 
-## Workflow Overview
+### PR Review Process:
+1. ✅ Check that GitHub Actions are green
+2. ✅ Code review by team member
+3. ✅ Manual merge after approval
 
-The GitHub Actions workflows will:
+### Emergency Fixes:
+1. Create hotfix branch from main
+2. Make minimal changes
+3. Follow same PR process
+4. Merge and deploy quickly
 
-1. **On Pull Request Creation/Update:**
-   - Run PR validation checks
-   - Execute linting
-   - Run comprehensive test matrix (unit + integration tests)
-   - Check for security vulnerabilities
-   - Validate commit messages
-   - Check bundle size
-
-2. **On Main Branch Push (after PR merge):**
-   - Run final tests
-   - Build for production
-   - Deploy to staging/production
-   - Send notifications
-
-3. **Daily Security Checks:**
-   - Audit dependencies for vulnerabilities
-   - Check for license compliance
-   - Create issues for outdated dependencies
-
-## Testing Locally
-
-Before pushing your changes, run these commands locally:
+## Local Development
 
 ```bash
-# Run all checks locally
-npm run lint
-npm run test:ci
-npm run build
+# Quick test everything
+npm run lint && npm run test:run && npm run build
 
-# Start Supabase and run integration tests
-npm run supabase:start
+# Start development with Supabase
+npm run dev:local
+
+# Run tests with Supabase
 npm run test:local
 ```
 
+## GitHub Actions Status
+
+Monitor your workflows at: `https://github.com/OWNER/REPO/actions`
+
+- 🟢 Green = Tests passed, ready to merge
+- 🔴 Red = Tests failed, needs fixes
+- 🟡 Yellow = Tests running
+
 ## Troubleshooting
 
-If status checks fail:
+If workflows fail:
 
-1. **Lint failures:** Run `npm run lint` locally and fix issues
-2. **Test failures:** Run `npm run test` locally to debug
-3. **Build failures:** Run `npm run build` locally to identify issues
-4. **Supabase issues:** Use the troubleshooting script: `./troubleshoot-supabase.sh`
+1. **Lint errors:** Run `npm run lint` locally
+2. **Test failures:** Run `npm run test` locally  
+3. **Build errors:** Run `npm run build` locally
+4. **Supabase issues:** Use `./troubleshoot-supabase.sh`
 
-## Emergency Bypass
+## Future Improvements
 
-In case of emergencies, repository admins can:
-1. Temporarily disable branch protection
-2. Merge critical fixes
-3. Re-enable protection immediately after
-
-**Note:** This should be used sparingly and documented.
+When ready to add more protection:
+- Enable GitHub branch protection rules
+- Add required status checks
+- Set up code review requirements
+- Add deployment environments
