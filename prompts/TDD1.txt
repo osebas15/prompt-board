@@ -11,4 +11,4 @@ for each section of the sprint
 6. run the tests, if any fail, summarize each issue, and search online for an up to date, best practice solution
 7. implement those solutions
 8. run the tests, if any fail, summarize each issue, and propose solutions in the file sprint{sprint number}-issues.txt, don't implement these solutions
-9. STOP HERE,
+9. STOP HERE
