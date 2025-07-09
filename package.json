@@ -33,9 +33,14 @@
     "test:docker:clean": "docker-compose -f docker-compose.test.yml down -v"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.1.1",
     "@supabase/supabase-js": "^2.50.3",
+    "clsx": "^2.1.1",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-hook-form": "^7.60.0",
+    "react-router-dom": "^7.6.3",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",

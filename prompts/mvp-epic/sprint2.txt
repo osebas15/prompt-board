@@ -1,0 +1,406 @@
+# Sprint 2: Core Prompt Management System (Weeks 3-4)
+
+## Sprint Goal
+Implement the core prompt CRUD operations, search functionality, and categorization system with comprehensive testing and real-time capabilities.
+
+## User Stories
+
+### Epic: Prompt Management
+**Story 2.1:** Prompt Creation and Editing
+- As a user, I want to create prompts with title, description, and content so that I can save my AI prompts
+- As a user, I want to edit my existing prompts so that I can improve them over time
+
+**Story 2.2:** Prompt Organization  
+- As a user, I want to categorize my prompts so that I can organize them logically
+- As a user, I want to tag my prompts so that I can find them easily later
+
+**Story 2.3:** Prompt Discovery
+- As a user, I want to search for prompts by keyword so that I can find relevant prompts quickly
+- As a user, I want to filter prompts by category and tags so that I can browse organized content
+
+**Story 2.4:** Prompt Library Management
+- As a user, I want to view all my prompts in a list so that I can see my prompt collection
+- As a user, I want to delete prompts I no longer need so that I can maintain a clean library
+
+## Acceptance Criteria
+
+### Prompt CRUD Operations
+- [ ] Users can create new prompts with title, description, and content
+- [ ] Users can edit existing prompts and save changes
+- [ ] Users can delete prompts with confirmation dialog
+- [ ] Users can view individual prompt details in full-screen mode
+- [ ] All prompt operations persist to database immediately
+- [ ] Real-time updates reflect changes across user sessions
+
+### Categorization & Tagging
+- [ ] Users can assign categories to prompts from predefined list
+- [ ] Users can create custom categories for their prompts
+- [ ] Users can add multiple tags to prompts with auto-complete
+- [ ] Tags are suggested based on existing tags in the system
+- [ ] Categories and tags display consistently throughout the UI
+
+### Search & Discovery
+- [ ] Users can search prompts by title, description, and content
+- [ ] Search results highlight matching terms
+- [ ] Users can filter by category using dropdown
+- [ ] Users can filter by tags using multi-select interface
+- [ ] Search and filters work together (combined filtering)
+- [ ] Search results are ordered by relevance
+
+### Prompt Library Interface
+- [ ] Prompts display in a responsive grid/list layout
+- [ ] Each prompt card shows title, description preview, category, and tags
+- [ ] Users can toggle between grid and list view
+- [ ] Pagination or infinite scroll for large prompt collections
+- [ ] Quick actions (edit, delete, share) available on each prompt card
+
+### Performance & UX
+- [ ] Search results appear within 500ms
+- [ ] Prompt creation/editing has optimistic UI updates
+- [ ] Loading states shown for all async operations
+- [ ] Error states provide clear user feedback
+- [ ] Undo capability for prompt deletion
+
+## Implementation Plan
+
+### Phase 1: Database Schema & API Layer (Day 1-2)
+1. **Database Schema Implementation**
+   ```sql
+   -- Prompts table with full-text search
+   CREATE TABLE prompts (
+     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     title TEXT NOT NULL,
+     description TEXT,
+     content TEXT NOT NULL,
+     category TEXT,
+     tags TEXT[] DEFAULT '{}',
+     user_id UUID REFERENCES auth.users(id),
+     organization_id UUID REFERENCES organizations(id),
+     visibility TEXT DEFAULT 'private' CHECK (visibility IN ('private', 'team', 'public')),
+     view_count INTEGER DEFAULT 0,
+     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+     tsv TSVECTOR GENERATED ALWAYS AS (
+       setweight(to_tsvector('english', title), 'A') ||
+       setweight(to_tsvector('english', COALESCE(description, '')), 'B') ||
+       setweight(to_tsvector('english', content), 'C')
+     ) STORED
+   );
+   
+   -- Categories table for organization-specific categories
+   CREATE TABLE categories (
+     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     name TEXT NOT NULL,
+     organization_id UUID REFERENCES organizations(id),
+     created_by UUID REFERENCES auth.users(id),
+     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+   );
+   ```
+
+2. **RLS Policies & Indexes**
+   - Row Level Security policies for prompt access control
+   - GIN indexes for full-text search and array operations
+   - B-tree indexes for common query patterns
+
+### Phase 2: React Query Integration & API Hooks (Day 3-4)
+1. **API Layer with React Query**
+   ```typescript
+   // usePrompts.ts
+   export const usePrompts = (filters?: PromptFilters) => {
+     return useQuery({
+       queryKey: ['prompts', filters],
+       queryFn: () => fetchPrompts(filters),
+       staleTime: 5 * 60 * 1000, // 5 minutes
+     });
+   };
+   
+   // useCreatePrompt.ts  
+   export const useCreatePrompt = () => {
+     const queryClient = useQueryClient();
+     return useMutation({
+       mutationFn: createPrompt,
+       onSuccess: () => {
+         queryClient.invalidateQueries(['prompts']);
+       },
+       onMutate: async (newPrompt) => {
+         // Optimistic update implementation
+       },
+     });
+   };
+   ```
+
+2. **Search & Filter Hooks**
+   ```typescript
+   // usePromptSearch.ts
+   export const usePromptSearch = () => {
+     const [searchTerm, setSearchTerm] = useState('');
+     const [filters, setFilters] = useState<PromptFilters>({});
+     const debouncedSearch = useDebounce(searchTerm, 300);
+     
+     return useQuery({
+       queryKey: ['prompts', 'search', debouncedSearch, filters],
+       queryFn: () => searchPrompts(debouncedSearch, filters),
+       enabled: !!debouncedSearch || Object.keys(filters).length > 0,
+     });
+   };
+   ```
+
+### Phase 3: UI Components & Forms (Day 5-6)
+1. **Prompt Editor Component**
+   ```typescript
+   // PromptEditor.tsx - Rich text editor with auto-save
+   interface PromptEditorProps {
+     prompt?: Prompt;
+     onSave: (prompt: PromptData) => void;
+     isLoading: boolean;
+   }
+   ```
+
+2. **Prompt Library Components**
+   ```typescript
+   // PromptCard.tsx - Individual prompt display
+   // PromptGrid.tsx - Grid layout with virtualization
+   // PromptFilters.tsx - Search and filter interface
+   // CategoryManager.tsx - Category CRUD interface
+   ```
+
+3. **Form Validation & State Management**
+   - React Hook Form integration with Zod schemas
+   - Auto-save functionality with debouncing
+   - Draft state management for unsaved changes
+
+### Phase 4: Search & Real-time Features (Day 7-8)
+1. **Full-Text Search Implementation**
+   ```typescript
+   // Search with PostgreSQL full-text search
+   const searchPrompts = async (query: string, filters: PromptFilters) => {
+     const { data } = await supabase
+       .from('prompts')
+       .select('*')
+       .textSearch('tsv', query)
+       .match(filters)
+       .order('created_at', { ascending: false });
+     return data;
+   };
+   ```
+
+2. **Real-time Updates**
+   ```typescript
+   // Real-time subscription for prompt changes
+   useEffect(() => {
+     const channel = supabase
+       .channel('prompts')
+       .on('postgres_changes', 
+         { event: '*', schema: 'public', table: 'prompts' },
+         (payload) => {
+           queryClient.setQueryData(['prompts'], (old) => 
+             updatePromptsCache(old, payload)
+           );
+         }
+       )
+       .subscribe();
+     
+     return () => supabase.removeChannel(channel);
+   }, []);
+   ```
+
+### Phase 5: Testing & Performance (Day 9-10)
+1. **Comprehensive Test Suite**
+   - Unit tests for all hooks and components
+   - Integration tests for search and CRUD operations
+   - Mock Supabase responses for testing
+
+2. **Performance Optimization**
+   - Implement virtual scrolling for large prompt lists
+   - Optimize search queries and indexing
+   - Add caching strategies for frequent operations
+
+## Testing Plan
+
+### Test Driven Development Approach
+
+#### Unit Tests (Target: 95% coverage)
+1. **Prompt Management Hooks**
+   ```typescript
+   // usePrompts.test.ts
+   describe('usePrompts', () => {
+     test('should fetch prompts for current user')
+     test('should apply filters correctly')
+     test('should handle empty results')
+     test('should retry on network failure')
+   })
+   
+   // useCreatePrompt.test.ts
+   describe('useCreatePrompt', () => {
+     test('should create prompt successfully')
+     test('should handle validation errors')
+     test('should update cache optimistically')
+     test('should rollback on server error')
+   })
+   ```
+
+2. **Search Functionality Tests**
+   ```typescript
+   // usePromptSearch.test.ts  
+   describe('usePromptSearch', () => {
+     test('should debounce search input')
+     test('should combine search with filters')
+     test('should handle special characters in search')
+     test('should rank results by relevance')
+   })
+   ```
+
+3. **Component Tests**
+   ```typescript
+   // PromptEditor.test.tsx
+   describe('PromptEditor', () => {
+     test('should auto-save changes after delay')
+     test('should handle unsaved changes warning')
+     test('should validate required fields')
+     test('should support markdown formatting')
+   })
+   
+   // PromptCard.test.tsx
+   describe('PromptCard', () => {
+     test('should display prompt information correctly')
+     test('should handle quick actions (edit, delete)')
+     test('should show appropriate icons for visibility')
+     test('should truncate long descriptions')
+   })
+   ```
+
+#### Integration Tests
+1. **End-to-End Prompt Workflows**
+   ```typescript
+   describe('Prompt Management Integration', () => {
+     test('create prompt → edit → save → search → delete flow')
+     test('category assignment and filtering')
+     test('tag creation and auto-complete')
+     test('real-time updates across multiple sessions')
+   })
+   ```
+
+2. **Search Integration Tests**
+   ```typescript
+   describe('Search Integration', () => {
+     test('full-text search with highlighting')
+     test('combined search and filter operations')
+     test('search performance with large datasets')
+     test('search result pagination')
+   })
+   ```
+
+#### Performance Tests
+1. **Load Testing**
+   ```typescript
+   describe('Performance', () => {
+     test('should handle 1000+ prompts without lag')
+     test('should search 10,000+ prompts under 500ms')
+     test('should render large lists using virtualization')
+     test('should optimize database queries')
+   })
+   ```
+
+### Testing Infrastructure
+- **React Query DevTools**: Query inspection and debugging
+- **Supabase Local Development**: Isolated test database
+- **Faker.js**: Realistic test data generation
+- **Jest Performance Monitoring**: Performance regression detection
+
+### Test Data Strategy
+1. **Prompt Fixtures**
+   ```typescript
+   // Test data factories for consistent prompt objects
+   const createMockPrompt = (overrides = {}) => ({
+     id: faker.datatype.uuid(),
+     title: faker.lorem.sentence(),
+     description: faker.lorem.paragraph(),
+     content: faker.lorem.paragraphs(3),
+     category: faker.helpers.arrayElement(categories),
+     tags: faker.helpers.arrayElements(tags),
+     ...overrides
+   });
+   ```
+
+2. **Search Test Scenarios**
+   - Exact match searches
+   - Partial word matching
+   - Tag-based filtering
+   - Category combinations
+   - Edge cases (empty results, special characters)
+
+## Definition of Done
+
+### Code Quality
+- [ ] All TypeScript interfaces properly typed
+- [ ] React Query patterns consistent across all hooks
+- [ ] Component props documented with JSDoc
+- [ ] Error boundaries handle all failure scenarios
+- [ ] Performance optimizations implemented
+
+### Functionality
+- [ ] All CRUD operations work reliably
+- [ ] Search returns relevant results within 500ms
+- [ ] Real-time updates work across browser tabs
+- [ ] Offline functionality with proper sync
+- [ ] Responsive design works on all screen sizes
+
+### Testing
+- [ ] 95% unit test coverage for prompt management
+- [ ] Integration tests cover all user workflows
+- [ ] Performance tests validate response times
+- [ ] Error scenarios have comprehensive test coverage
+- [ ] Test suite runs in under 30 seconds
+
+### User Experience
+- [ ] Intuitive prompt creation and editing flow
+- [ ] Clear visual feedback for all operations
+- [ ] Consistent design patterns throughout
+- [ ] Accessible keyboard navigation
+- [ ] Mobile-responsive interface
+
+## Dependencies & Blockers
+
+### Sprint 1 Dependencies
+- Authentication system must be complete and tested
+- UI component library must be established
+- Database schema and RLS policies must be functional
+- React Query setup and patterns must be defined
+
+### Technical Dependencies
+- Full-text search indexing strategy
+- Real-time subscription architecture
+- File upload capability (for future prompt attachments)
+- Category management system design
+
+### Potential Blockers
+- PostgreSQL full-text search performance tuning
+- Real-time subscription scaling considerations
+- Mobile responsiveness for complex interfaces
+- Search result ranking algorithm optimization
+
+## Success Metrics
+
+### Technical Metrics
+- **Search Performance**: <500ms for 95% of queries
+- **Real-time Latency**: <100ms for prompt updates
+- **Test Coverage**: >95% for all prompt-related code
+- **Bundle Size Impact**: <200KB additional for prompt features
+
+### User Experience Metrics
+- **Prompt Creation Time**: <30 seconds average
+- **Search Success Rate**: >90% of searches find relevant results
+- **Error Rate**: <1% of operations result in errors
+- **Mobile Usability**: All features work on mobile devices
+
+### Feature Adoption
+- **Daily Prompt Creation**: Average 3 prompts per active user
+- **Search Usage**: 70% of users use search weekly
+- **Category Usage**: 80% of prompts are categorized
+- **Tag Usage**: Average 2-3 tags per prompt
+
+### Performance Benchmarks
+- **Large Dataset Handling**: Support 10,000+ prompts per organization
+- **Concurrent Users**: Handle 50+ simultaneous prompt operations
+- **Database Performance**: Maintain <100ms query response times
+- **Client Performance**: Smooth 60fps scrolling through prompt lists

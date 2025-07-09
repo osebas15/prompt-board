@@ -1,0 +1,441 @@
+# Sprint 3: Team Collaboration & Sharing System (Weeks 5-6)
+
+## Sprint Goal
+Implement team collaboration features including prompt sharing, permissions management, commenting system, and real-time collaboration capabilities.
+
+## User Stories
+
+### Epic: Collaboration & Sharing
+**Story 3.1:** Prompt Sharing & Permissions
+- As a user, I want to share prompts with my team so that we can collaborate on prompt development
+- As a user, I want to control who can view and edit my prompts so that I can manage access appropriately
+- As a team lead, I want to manage team member permissions so that I can control collaboration levels
+
+**Story 3.2:** Team Management
+- As an admin, I want to invite team members to my organization so that we can work together
+- As an admin, I want to assign roles to team members so that I can control access levels
+- As a team member, I want to see who else is in my organization so that I know who I can collaborate with
+
+**Story 3.3:** Commenting & Feedback System
+- As a user, I want to comment on team prompts so that I can provide feedback and suggestions
+- As a prompt owner, I want to see comments on my prompts so that I can improve them based on feedback
+- As a team member, I want to be notified of comments on prompts I'm involved with
+
+**Story 3.4:** Real-time Collaboration
+- As a user, I want to see when others are viewing or editing shared prompts so that we can avoid conflicts
+- As a team member, I want to see updates to shared prompts in real-time so that I'm always working with the latest version
+
+## Acceptance Criteria
+
+### Sharing & Permissions System
+- [ ] Users can set prompt visibility to Private, Team, or Public
+- [ ] Team prompts are visible to all organization members
+- [ ] Public prompts are discoverable by all platform users
+- [ ] Users can change sharing settings on existing prompts
+- [ ] Permission changes take effect immediately across all users
+- [ ] Shared prompts display owner information and sharing status
+
+### Team Management
+- [ ] Admins can invite users via email invitation
+- [ ] Invited users receive email with signup/join link
+- [ ] Users can accept invitations and join organizations
+- [ ] Admins can assign roles: Admin, Member, Viewer
+- [ ] Role permissions are enforced throughout the application
+- [ ] Team member list shows roles and last activity
+
+### Role-Based Access Control
+- [ ] **Admin**: Full access to organization, can invite/remove users, manage all prompts
+- [ ] **Member**: Can create/edit own prompts, view/comment on team prompts, cannot manage users
+- [ ] **Viewer**: Can view team prompts and add comments, cannot create or edit prompts
+- [ ] Role changes are reflected immediately without requiring re-login
+
+### Commenting System
+- [ ] Users can add comments to any prompt they have access to
+- [ ] Comments display with author name, timestamp, and content
+- [ ] Comment authors can edit and delete their own comments
+- [ ] Prompt owners can delete any comments on their prompts
+- [ ] Comments are ordered chronologically
+- [ ] Real-time comment updates across all viewers
+
+### Real-time Features
+- [ ] Live presence indicators show who is currently viewing prompts
+- [ ] Real-time comment notifications appear without page refresh
+- [ ] Prompt updates propagate immediately to all viewers
+- [ ] Connection status indicator shows real-time connectivity
+- [ ] Graceful handling of network disconnections
+
+### Notifications
+- [ ] In-app notifications for comments on user's prompts
+- [ ] Email notifications for important team activities (configurable)
+- [ ] Notification center shows recent activity
+- [ ] Users can mark notifications as read
+- [ ] Notification preferences can be customized
+
+## Implementation Plan
+
+### Phase 1: Database Schema & Permissions (Day 1-2)
+1. **Enhanced Database Schema**
+   ```sql
+   -- Enhanced user_organizations with roles
+   ALTER TABLE user_organizations 
+   ADD COLUMN role TEXT DEFAULT 'member' 
+   CHECK (role IN ('admin', 'member', 'viewer'));
+   
+   -- Comments table
+   CREATE TABLE comments (
+     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     prompt_id UUID REFERENCES prompts(id) ON DELETE CASCADE,
+     user_id UUID REFERENCES auth.users(id),
+     content TEXT NOT NULL,
+     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+   );
+   
+   -- Invitations table
+   CREATE TABLE invitations (
+     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     email TEXT NOT NULL,
+     organization_id UUID REFERENCES organizations(id),
+     role TEXT DEFAULT 'member',
+     invited_by UUID REFERENCES auth.users(id),
+     token TEXT UNIQUE NOT NULL,
+     expires_at TIMESTAMP WITH TIME ZONE,
+     accepted_at TIMESTAMP WITH TIME ZONE,
+     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+   );
+   
+   -- Notifications table
+   CREATE TABLE notifications (
+     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     user_id UUID REFERENCES auth.users(id),
+     type TEXT NOT NULL,
+     title TEXT NOT NULL,
+     content TEXT,
+     related_id UUID,
+     read_at TIMESTAMP WITH TIME ZONE,
+     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+   );
+   ```
+
+2. **Advanced RLS Policies**
+   ```sql
+   -- Prompt visibility policies
+   CREATE POLICY "Users can view prompts based on visibility" ON prompts
+     FOR SELECT USING (
+       visibility = 'public' OR
+       user_id = auth.uid() OR
+       (visibility = 'team' AND organization_id IN (
+         SELECT organization_id FROM user_organizations 
+         WHERE user_id = auth.uid()
+       ))
+     );
+   
+   -- Comment access policies
+   CREATE POLICY "Users can comment on accessible prompts" ON comments
+     FOR INSERT WITH CHECK (
+       prompt_id IN (SELECT id FROM prompts WHERE /* user has access */)
+     );
+   ```
+
+### Phase 2: Team Management System (Day 3-4)
+1. **Invitation System**
+   ```typescript
+   // useInviteUser.ts
+   export const useInviteUser = () => {
+     return useMutation({
+       mutationFn: async (invitation: InvitationData) => {
+         const token = generateSecureToken();
+         const { data } = await supabase
+           .from('invitations')
+           .insert({
+             ...invitation,
+             token,
+             expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+           });
+         
+         // Send invitation email
+         await sendInvitationEmail(invitation.email, token);
+         return data;
+       },
+       onSuccess: () => {
+         toast.success('Invitation sent successfully');
+         queryClient.invalidateQueries(['team-members']);
+       }
+     });
+   };
+   ```
+
+2. **Role Management Components**
+   ```typescript
+   // TeamManagement.tsx
+   interface TeamMember {
+     id: string;
+     name: string;
+     email: string;
+     role: 'admin' | 'member' | 'viewer';
+     last_active: string;
+     avatar_url?: string;
+   }
+   
+   // RoleSelector.tsx - Role change interface
+   // InviteModal.tsx - Team invitation modal
+   // TeamMemberCard.tsx - Individual member display
+   ```
+
+### Phase 3: Sharing & Permissions UI (Day 5-6)
+1. **Sharing Controls**
+   ```typescript
+   // PromptSharingModal.tsx
+   interface SharingSettings {
+     visibility: 'private' | 'team' | 'public';
+     allowComments: boolean;
+     allowEditing: boolean; // Future feature
+   }
+   
+   // ShareButton.tsx - Quick sharing toggle
+   // PermissionIndicator.tsx - Visual permission status
+   ```
+
+2. **Enhanced Prompt Display**
+   ```typescript
+   // PromptCard.tsx - Updated with sharing indicators
+   // PromptDetail.tsx - Full prompt view with collaboration features
+   // PromptHeader.tsx - Owner info and sharing status
+   ```
+
+### Phase 4: Commenting System (Day 7-8)
+1. **Comment Components**
+   ```typescript
+   // CommentSection.tsx
+   interface Comment {
+     id: string;
+     content: string;
+     author: User;
+     created_at: string;
+     updated_at: string;
+     can_edit: boolean;
+     can_delete: boolean;
+   }
+   
+   // CommentForm.tsx - Add new comments
+   // CommentList.tsx - Display comments with pagination
+   // CommentItem.tsx - Individual comment with actions
+   ```
+
+2. **Real-time Comment Updates**
+   ```typescript
+   // useComments.ts
+   export const useComments = (promptId: string) => {
+     const queryClient = useQueryClient();
+     
+     useEffect(() => {
+       const channel = supabase
+         .channel(`comments:${promptId}`)
+         .on('postgres_changes',
+           { event: '*', schema: 'public', table: 'comments', filter: `prompt_id=eq.${promptId}` },
+           (payload) => {
+             queryClient.setQueryData(['comments', promptId], (old: Comment[]) => 
+               updateCommentsCache(old, payload)
+             );
+           }
+         )
+         .subscribe();
+       
+       return () => supabase.removeChannel(channel);
+     }, [promptId]);
+   };
+   ```
+
+### Phase 5: Real-time Features & Notifications (Day 9-10)
+1. **Presence System**
+   ```typescript
+   // usePresence.ts
+   export const usePresence = (promptId: string) => {
+     const [users, setUsers] = useState<PresenceUser[]>([]);
+     
+     useEffect(() => {
+       const channel = supabase.channel(`presence:${promptId}`, {
+         config: { presence: { key: currentUser.id } }
+       });
+       
+       channel
+         .on('presence', { event: 'sync' }, () => {
+           const presenceState = channel.presenceState();
+           setUsers(Object.values(presenceState).flat());
+         })
+         .subscribe(async (status) => {
+           if (status === 'SUBSCRIBED') {
+             await channel.track({
+               user_id: currentUser.id,
+               name: currentUser.name,
+               avatar_url: currentUser.avatar_url,
+               viewing_at: new Date().toISOString()
+             });
+           }
+         });
+       
+       return () => supabase.removeChannel(channel);
+     }, [promptId]);
+   };
+   ```
+
+2. **Notification System**
+   ```typescript
+   // NotificationCenter.tsx
+   // useNotifications.ts - Real-time notification management
+   // NotificationToast.tsx - In-app notification display
+   ```
+
+## Testing Plan
+
+### Test Driven Development Approach
+
+#### Unit Tests (Target: 95% coverage)
+1. **Team Management Tests**
+   ```typescript
+   // useInviteUser.test.ts
+   describe('useInviteUser', () => {
+     test('should send invitation with correct data')
+     test('should generate secure invitation token')
+     test('should set appropriate expiration date')
+     test('should handle email sending failures')
+   })
+   
+   // RoleManager.test.tsx
+   describe('RoleManager', () => {
+     test('should update user roles correctly')
+     test('should enforce role-based permissions')
+     test('should handle role change errors')
+   })
+   ```
+
+2. **Sharing System Tests**
+   ```typescript
+   // PromptSharing.test.tsx
+   describe('PromptSharing', () => {
+     test('should change visibility settings')
+     test('should enforce access permissions')
+     test('should update sharing indicators')
+     test('should handle permission edge cases')
+   })
+   ```
+
+3. **Comment System Tests**
+   ```typescript
+   // CommentSection.test.tsx
+   describe('CommentSection', () => {
+     test('should display comments in chronological order')
+     test('should allow comment creation and editing')
+     test('should enforce comment permissions')
+     test('should handle real-time comment updates')
+   })
+   ```
+
+#### Integration Tests
+1. **Collaboration Workflows**
+   ```typescript
+   describe('Team Collaboration Integration', () => {
+     test('invite user → accept invitation → access team prompts')
+     test('create team prompt → add comments → real-time updates')
+     test('change prompt visibility → verify access control')
+     test('role change → permission enforcement')
+   })
+   ```
+
+2. **Real-time Features**
+   ```typescript
+   describe('Real-time Integration', () => {
+     test('presence updates across multiple users')
+     test('comment notifications in real-time')
+     test('prompt sharing updates propagation')
+     test('network disconnection handling')
+   })
+   ```
+
+#### E2E Tests
+1. **Team Collaboration Journeys**
+   - Admin invites team member → member joins → collaborates on prompts
+   - Team prompt creation → sharing → commenting → feedback loop
+   - Role changes and permission enforcement across the application
+
+### Testing Infrastructure
+- **WebSocket Testing**: Mock Supabase real-time for tests
+- **Email Testing**: Mock email service for invitation testing
+- **Multi-user Simulation**: Test concurrent user interactions
+- **Permission Testing**: Comprehensive role-based access testing
+
+## Definition of Done
+
+### Code Quality
+- [ ] TypeScript strict mode with comprehensive type coverage
+- [ ] Real-time subscriptions properly managed (no memory leaks)
+- [ ] Error boundaries handle collaboration failures gracefully
+- [ ] Performance optimized for multiple concurrent users
+- [ ] Security policies tested and verified
+
+### Functionality
+- [ ] All sharing permissions work correctly across user roles
+- [ ] Real-time features work reliably with multiple users
+- [ ] Comment system handles edge cases (deletion, editing, permissions)
+- [ ] Team management flows work end-to-end
+- [ ] Notification system provides timely, relevant updates
+
+### User Experience
+- [ ] Intuitive sharing and permission controls
+- [ ] Clear visual indicators for collaboration status
+- [ ] Responsive real-time updates without performance issues
+- [ ] Graceful handling of network connectivity issues
+- [ ] Consistent collaboration patterns across the application
+
+### Security
+- [ ] Role-based access control properly implemented
+- [ ] Invitation tokens are secure and time-limited
+- [ ] User data privacy maintained in shared contexts
+- [ ] XSS protection in comment system
+- [ ] Rate limiting on collaboration actions
+
+## Dependencies & Blockers
+
+### Sprint 2 Dependencies
+- Prompt management system must be complete
+- Search and filtering functionality must work
+- Core UI components must be established
+- Database schema and APIs must be stable
+
+### Technical Dependencies
+- Email service configuration for invitations
+- Real-time subscription architecture design
+- Notification delivery system setup
+- Performance optimization for concurrent users
+
+### Potential Blockers
+- Real-time subscription scaling and reliability
+- Email delivery service setup and configuration
+- Complex permission logic implementation
+- Multi-user testing infrastructure setup
+
+## Success Metrics
+
+### Technical Metrics
+- **Real-time Latency**: <200ms for all real-time updates
+- **Concurrent Users**: Support 50+ simultaneous collaborators
+- **Test Coverage**: >95% for all collaboration features
+- **Permission Accuracy**: 100% correct access control enforcement
+
+### Collaboration Metrics
+- **Invitation Success Rate**: >95% of invitations successfully delivered and accepted
+- **Comment Engagement**: 60% of team prompts receive comments within first week
+- **Sharing Adoption**: 70% of prompts in team organizations are shared
+- **Real-time Usage**: 80% of collaborative sessions use real-time features
+
+### User Experience Metrics
+- **Collaboration Flow Completion**: >90% of invited users successfully join teams
+- **Feature Discovery**: 80% of users discover and use sharing features within first session
+- **Error Rate**: <2% of collaboration actions result in errors
+- **Performance**: No noticeable lag during real-time collaboration
+
+### Team Adoption
+- **Team Size**: Support organizations with 10-50 members
+- **Active Collaboration**: 70% of team members actively collaborate weekly
+- **Role Distribution**: Proper role distribution (80% members, 15% admins, 5% viewers)
+- **Comment Quality**: Comments lead to prompt improvements in 60% of cases
