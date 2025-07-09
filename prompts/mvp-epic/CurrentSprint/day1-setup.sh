@@ -8,9 +8,19 @@ set -e
 echo "🚀 Day 1 Setup: Project Setup & Authentication Foundation"
 echo "========================================================="
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Navigate to the project root (assuming it's 3 levels up from CurrentSprint)
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+echo "📁 Navigating to project root: $PROJECT_ROOT"
+cd "$PROJECT_ROOT"
+
 # Check if we're in the right directory
 if [ ! -f "package.json" ]; then
-    echo "❌ Error: Please run this script from the project root directory"
+    echo "❌ Error: Could not find package.json in project root"
+    echo "   Expected location: $PROJECT_ROOT/package.json"
     exit 1
 fi
 

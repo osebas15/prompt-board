@@ -8,6 +8,22 @@ set -e
 echo "🗄️  Day 3 Setup: Core Database Schema & Prompt Model"
 echo "===================================================="
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Navigate to the project root (assuming it's 3 levels up from CurrentSprint)
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+echo "📁 Navigating to project root: $PROJECT_ROOT"
+cd "$PROJECT_ROOT"
+
+# Check if we're in the right directory
+if [ ! -f "package.json" ]; then
+    echo "❌ Error: Could not find package.json in project root"
+    echo "   Expected location: $PROJECT_ROOT/package.json"
+    exit 1
+fi
+
 echo "📦 Installing data management dependencies..."
 
 # Install data fetching and state management

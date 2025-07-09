@@ -3,11 +3,24 @@
 # Day 10 Setup Script - Production Deployment & Documentation
 # This script sets up tools and dependencies for production deployment tasks
 
-echo "🚀 Setting up Day 10: Production Deployment & Documentation"
+set -e
 
-# Check if we're in the correct directory
+echo "🚀 Day 10 Setup: Production Deployment & Documentation"
+echo "======================================================"
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Navigate to the project root (assuming it's 3 levels up from CurrentSprint)
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+echo "📁 Navigating to project root: $PROJECT_ROOT"
+cd "$PROJECT_ROOT"
+
+# Check if we're in the right directory
 if [ ! -f "package.json" ]; then
-    echo "❌ Error: Please run this script from the prompt-board root directory"
+    echo "❌ Error: Could not find package.json in project root"
+    echo "   Expected location: $PROJECT_ROOT/package.json"
     exit 1
 fi
 
