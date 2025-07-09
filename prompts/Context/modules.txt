@@ -1,0 +1,209 @@
+# Prompt Board MVP - Modules Definition
+
+## Core Modules Architecture
+
+### 1. Authentication Module (`src/modules/auth/`)
+**Purpose:** Handle user authentication, session management, and user profiles
+**Components:**
+- `AuthProvider.tsx` - React Context for auth state
+- `LoginForm.tsx` - Login interface
+- `SignupForm.tsx` - User registration
+- `ProtectedRoute.tsx` - Route protection wrapper
+- `UserProfile.tsx` - User profile management
+- `hooks/useAuth.ts` - Authentication hook
+- `types/auth.types.ts` - TypeScript interfaces
+
+**Dependencies:**
+- Supabase Auth API
+- React Context API
+- React Hook Form (form validation)
+- Zod (schema validation)
+
+### 2. Prompt Management Module (`src/modules/prompts/`)
+**Purpose:** Core CRUD operations for prompts, search, and categorization
+**Components:**
+- `PromptList.tsx` - Display prompts in list/grid
+- `PromptCard.tsx` - Individual prompt display
+- `PromptEditor.tsx` - Create/edit prompt form
+- `PromptViewer.tsx` - Read-only prompt view
+- `SearchBar.tsx` - Search interface
+- `CategoryFilter.tsx` - Category filtering
+- `TagManager.tsx` - Tag creation and management
+- `hooks/usePrompts.ts` - Prompt CRUD operations
+- `hooks/useSearch.ts` - Search functionality
+- `types/prompt.types.ts` - TypeScript interfaces
+
+**Dependencies:**
+- Supabase Database API
+- React Query/TanStack Query (data fetching)
+- React Hook Form
+- Fuse.js (fuzzy search)
+- React Virtual (virtualization for large lists)
+
+### 3. Organization/Team Module (`src/modules/organization/`)
+**Purpose:** Team management, invitations, and workspace organization
+**Components:**
+- `OrganizationProvider.tsx` - Context for org state
+- `TeamMembers.tsx` - Member list and management
+- `InviteForm.tsx` - Send team invitations
+- `RoleManager.tsx` - Role assignment interface
+- `OrganizationSettings.tsx` - Org configuration
+- `hooks/useOrganization.ts` - Org operations
+- `types/organization.types.ts` - TypeScript interfaces
+
+**Dependencies:**
+- Supabase Database API
+- Email service integration
+- React Query
+
+### 4. Collaboration Module (`src/modules/collaboration/`)
+**Purpose:** Sharing, commenting, and real-time features
+**Components:**
+- `ShareDialog.tsx` - Sharing options modal
+- `CommentSection.tsx` - Comments display
+- `CommentForm.tsx` - Add comment form
+- `ActivityFeed.tsx` - Recent activity display
+- `PermissionManager.tsx` - Sharing permissions
+- `hooks/useComments.ts` - Comment operations
+- `hooks/useRealtime.ts` - Real-time subscriptions
+- `types/collaboration.types.ts` - TypeScript interfaces
+
+**Dependencies:**
+- Supabase Real-time
+- React Query
+- Date formatting library (date-fns)
+
+### 5. Analytics Module (`src/modules/analytics/`)
+**Purpose:** Usage tracking and dashboard metrics
+**Components:**
+- `AnalyticsDashboard.tsx` - Main analytics view
+- `UsageChart.tsx` - Usage visualization
+- `PopularPrompts.tsx` - Popular content display
+- `UserMetrics.tsx` - User activity metrics
+- `hooks/useAnalytics.ts` - Analytics data
+- `types/analytics.types.ts` - TypeScript interfaces
+
+**Dependencies:**
+- Chart.js or Recharts (visualization)
+- Supabase Analytics
+
+### 6. UI Components Module (`src/modules/ui/`)
+**Purpose:** Reusable UI components and design system
+**Components:**
+- `Button.tsx` - Various button styles
+- `Modal.tsx` - Modal dialog component
+- `Input.tsx` - Form input components
+- `Card.tsx` - Content card component
+- `Sidebar.tsx` - Navigation sidebar
+- `Header.tsx` - Application header
+- `Loading.tsx` - Loading states
+- `ErrorBoundary.tsx` - Error handling
+- `Toast.tsx` - Notification system
+- `types/ui.types.ts` - TypeScript interfaces
+
+**Dependencies:**
+- Headless UI (unstyled components)
+- React Hot Toast (notifications)
+- Lucide React (icons)
+- clsx (conditional classes)
+
+### 7. Router Module (`src/modules/router/`)
+**Purpose:** Application routing and navigation
+**Components:**
+- `AppRouter.tsx` - Main router configuration
+- `ProtectedRoutes.tsx` - Authentication-based routing
+- `types/routes.types.ts` - Route definitions
+
+**Dependencies:**
+- React Router DOM v6
+
+### 8. Database Module (`src/modules/database/`)
+**Purpose:** Database operations and Supabase integration
+**Components:**
+- `supabaseClient.ts` - Supabase client configuration
+- `queries/` - Database query functions
+- `migrations/` - Database schema definitions
+- `types/database.types.ts` - Database type definitions
+
+**Dependencies:**
+- Supabase JS Client
+- Database type generation tools
+
+### 9. Utils Module (`src/modules/utils/`)
+**Purpose:** Utility functions and helpers
+**Components:**
+- `dateUtils.ts` - Date formatting and manipulation
+- `textUtils.ts` - Text processing utilities
+- `validationSchemas.ts` - Zod validation schemas
+- `constants.ts` - Application constants
+- `helpers.ts` - General helper functions
+
+**Dependencies:**
+- date-fns
+- Zod
+- Lodash (utility functions)
+
+### 10. Hooks Module (`src/modules/hooks/`)
+**Purpose:** Shared custom React hooks
+**Components:**
+- `useLocalStorage.ts` - Local storage hook
+- `useDebounce.ts` - Debounce hook
+- `useKeyboard.ts` - Keyboard shortcuts
+- `useOnClickOutside.ts` - Click outside detection
+- `usePrevious.ts` - Previous value tracking
+
+**Dependencies:**
+- React hooks
+
+## Module Integration Patterns
+
+### Context Providers Hierarchy
+```
+App
+├── AuthProvider
+├── OrganizationProvider
+├── QueryClientProvider (React Query)
+└── AppRouter
+```
+
+### Data Flow Architecture
+- **State Management**: React Context + React Query for server state
+- **Form Handling**: React Hook Form + Zod validation
+- **Real-time**: Supabase Real-time subscriptions
+- **Error Handling**: React Error Boundaries + global error context
+
+### Code Organization
+```
+src/
+├── modules/
+│   ├── auth/
+│   ├── prompts/
+│   ├── organization/
+│   ├── collaboration/
+│   ├── analytics/
+│   ├── ui/
+│   ├── router/
+│   ├── database/
+│   ├── utils/
+│   └── hooks/
+├── pages/
+│   ├── Dashboard.tsx
+│   ├── PromptLibrary.tsx
+│   ├── Settings.tsx
+│   └── TeamManagement.tsx
+├── App.tsx
+└── main.tsx
+```
+
+### Testing Strategy
+- **Unit Tests**: Individual component and hook testing
+- **Integration Tests**: Module interaction testing
+- **E2E Tests**: Critical user flow testing
+- **Component Tests**: UI component behavior testing
+
+Each module is designed to be:
+- **Self-contained**: Minimal external dependencies
+- **Testable**: Clear interfaces and pure functions
+- **Reusable**: Components can be used across features
+- **Type-safe**: Full TypeScript coverage
+- **Performant**: Optimized for React rendering

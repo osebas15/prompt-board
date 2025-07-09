@@ -1,0 +1,243 @@
+# Prompt Board MVP - Dependencies Diagram
+
+## Module Dependency Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                           App.tsx                               │
+│                    (Main Application)                           │
+└─────────────┬───────────────────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Context Providers                            │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐               │
+│  │ AuthProvider│ │QueryProvider│ │OrgProvider  │               │
+│  └─────────────┘ └─────────────┘ └─────────────┘               │
+└─────────────┬───────────────────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      Router Module                              │
+│                   (AppRouter.tsx)                               │
+└─────────────┬───────────────────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        Pages Layer                              │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐               │
+│  │ Dashboard   │ │PromptLibrary│ │TeamManagement│               │
+│  └─────────────┘ └─────────────┘ └─────────────┘               │
+└─────────────┬───────────────────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                     Feature Modules                             │
+└─────────────┬───────────────────────────────────────────────────┘
+              │
+    ┌─────────┼──────────────────────────────────────────────┐
+    │         │                                              │
+    ▼         ▼                                              ▼
+┌────────┐ ┌──────────┐ ┌──────────────┐ ┌─────────────────┐ ┌──────────┐
+│  Auth  │ │ Prompts  │ │Organization  │ │ Collaboration   │ │Analytics │
+│ Module │ │  Module  │ │    Module    │ │     Module      │ │  Module  │
+└───┬────┘ └────┬─────┘ └──────┬───────┘ └────────┬────────┘ └────┬─────┘
+    │           │              │                  │               │
+    │           │              │                  │               │
+    └───────────┼──────────────┼──────────────────┼───────────────┘
+                │              │                  │
+                ▼              ▼                  ▼
+        ┌─────────────────────────────────────────────┐
+        │              Shared Modules                 │
+        │  ┌──────────┐ ┌────────┐ ┌──────────────┐  │
+        │  │    UI    │ │ Utils  │ │   Database   │  │
+        │  │ Module   │ │ Module │ │    Module    │  │
+        │  └──────────┘ └────────┘ └──────────────┘  │
+        └─────────────────────────────────────────────┘
+                              │
+                              ▼
+        ┌─────────────────────────────────────────────┐
+        │             External Services               │
+        │  ┌──────────┐ ┌────────────┐ ┌───────────┐ │
+        │  │ Supabase │ │    APIs    │ │   CDNs    │ │
+        │  └──────────┘ └────────────┘ └───────────┘ │
+        └─────────────────────────────────────────────┘
+```
+
+## Detailed Module Dependencies
+
+### 1. Authentication Module Dependencies
+```
+Auth Module
+├── React Context API
+├── Supabase Auth
+├── React Hook Form
+├── Zod (validation)
+├── React Router (redirects)
+└── UI Module (components)
+```
+
+### 2. Prompts Module Dependencies
+```
+Prompts Module
+├── React Query (data fetching)
+├── Supabase Database
+├── React Hook Form
+├── Fuse.js (search)
+├── React Virtual (large lists)
+├── Date-fns (formatting)
+├── Auth Module (user context)
+├── Organization Module (team prompts)
+└── UI Module (components)
+```
+
+### 3. Organization Module Dependencies
+```
+Organization Module
+├── React Query
+├── Supabase Database
+├── Auth Module (current user)
+├── Email Service Integration
+└── UI Module (components)
+```
+
+### 4. Collaboration Module Dependencies
+```
+Collaboration Module
+├── Supabase Real-time
+├── React Query
+├── Date-fns
+├── Auth Module (user permissions)
+├── Organization Module (team context)
+├── Prompts Module (prompt data)
+└── UI Module (components)
+```
+
+### 5. Analytics Module Dependencies
+```
+Analytics Module
+├── Recharts (visualization)
+├── React Query
+├── Supabase Database
+├── Date-fns
+├── Auth Module (user context)
+├── Organization Module (team analytics)
+└── UI Module (components)
+```
+
+### 6. UI Module Dependencies
+```
+UI Module
+├── Headless UI (base components)
+├── Lucide React (icons)
+├── React Hot Toast (notifications)
+├── Clsx (conditional styling)
+├── Tailwind CSS (styling)
+└── React (base framework)
+```
+
+### 7. Router Module Dependencies
+```
+Router Module
+├── React Router DOM
+├── Auth Module (route protection)
+└── React (components)
+```
+
+### 8. Database Module Dependencies
+```
+Database Module
+├── Supabase JS Client
+├── TypeScript (type generation)
+└── Environment Variables
+```
+
+### 9. Utils Module Dependencies
+```
+Utils Module
+├── Date-fns
+├── Lodash
+├── Zod
+└── TypeScript
+```
+
+### 10. Hooks Module Dependencies
+```
+Hooks Module
+├── React (base hooks)
+├── Use-debounce
+├── React-use
+└── TypeScript
+```
+
+## Data Flow Architecture
+
+```
+User Interaction
+       │
+       ▼
+  UI Components
+       │
+       ▼
+  Custom Hooks
+       │
+       ▼
+  React Query ──────► Supabase Database
+       │                    │
+       ▼                    ▼
+  Context State        Real-time Updates
+       │                    │
+       ▼                    ▼
+  Component Re-render ◄─────┘
+```
+
+## Build Dependencies
+
+```
+Development Build
+├── Vite (bundler)
+├── TypeScript (compilation)
+├── Tailwind CSS (styling)
+├── ESLint (linting)
+├── Prettier (formatting)
+└── Vitest (testing)
+
+Production Build
+├── Docker (containerization)
+├── Nginx (serving)
+├── Environment Variables
+└── Supabase (backend)
+```
+
+## Package Management Strategy
+
+### Core Dependencies (Runtime)
+- React 19+ ecosystem
+- Supabase client libraries
+- UI and utility libraries
+
+### Development Dependencies
+- TypeScript tooling
+- Testing frameworks
+- Build and bundling tools
+- Code quality tools
+
+### External Services
+- Supabase (Auth, Database, Real-time)
+- CDN for static assets
+- Email service for invitations
+
+## Dependency Update Strategy
+
+1. **Major Updates**: Quarterly review and testing
+2. **Minor Updates**: Monthly security and feature updates
+3. **Patch Updates**: Weekly or as needed for security
+4. **Lock Files**: Committed to ensure reproducible builds
+5. **Audit**: Regular security audits with `npm audit`
+
+This architecture ensures:
+- **Loose Coupling**: Modules interact through well-defined interfaces
+- **High Cohesion**: Related functionality is grouped together
+- **Testability**: Each module can be tested independently
+- **Scalability**: New modules can be added without major refactoring
+- **Maintainability**: Clear separation of concerns and dependencies
