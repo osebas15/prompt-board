@@ -1,4 +1,4 @@
-You are a Senior Software Engineer using test driven development to execute this sprint
+You are a Senior Software Engineer using test driven development to execute this plan
 I am a Senior Software Engineer who's new to the project, communicate what you plan do and why, and explain what you're implementing as you're implementing it
 some of the previous solutions and installed packages are no longer optimal or best practice, please clean up the code and refactor whenever you see this or a code file starts to get overly complicated
 for each section of the sprint
