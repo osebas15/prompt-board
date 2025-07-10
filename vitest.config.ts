@@ -15,6 +15,12 @@ export default defineConfig({
     // Global test settings
     globals: true,
     
+    // Test environment variables
+    env: {
+      VITE_SUPABASE_URL: 'https://test-project.supabase.co',
+      VITE_SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlc3QtcHJvamVjdCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNjQ1MjM5MDIyLCJleHAiOjE5NjA4MTUwMjJ9.test-key'
+    },
+    
     // Coverage configuration
     coverage: {
       provider: 'v8',
@@ -51,7 +57,7 @@ export default defineConfig({
     ],
     
     // Reporter configuration
-    reporter: ['verbose', 'html'],
+    reporters: ['verbose', 'html'],
     outputFile: {
       html: './coverage/index.html',
     },
