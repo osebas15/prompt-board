@@ -2,6 +2,7 @@ import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './features/auth/providers/AuthProvider'
 import { useAuth } from './features/auth/hooks/useAuth'
+import { EnvDebugger } from './components/EnvDebugger'
 import './App.css'
 
 // Simple components for demonstration
@@ -215,6 +216,17 @@ const SupabaseConnectionError = ({ onRetry, errorDetails }: { onRetry: () => voi
                 <p>Error: <code className="bg-red-100 px-1 rounded text-red-700">{errorDetails}</code></p>
               )}
             </div>
+
+            <div className="mt-4">
+              <details className="cursor-pointer">
+                <summary className="text-sm font-medium text-gray-700 hover:text-gray-900">
+                  🔧 Advanced Debug Info
+                </summary>
+                <div className="mt-2">
+                  <EnvDebugger />
+                </div>
+              </details>
+            </div>
           </div>
         </div>
       </div>
@@ -281,7 +293,7 @@ function App() {
 
       // Try to import and use the Supabase client
       const { supabase } = await import('./lib/supabase')
-      const { data, error } = await supabase.auth.getSession()
+      const { error } = await supabase.auth.getSession()
       
       if (error) {
         console.error('Supabase auth error:', error)

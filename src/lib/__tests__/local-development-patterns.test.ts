@@ -137,7 +137,7 @@ describe('Local Development Integration Patterns', () => {
       const debugInfo = createDebugInfo()
       expect(debugInfo.environment).toBeDefined()
       expect(debugInfo.supabaseUrl).toBeDefined()
-      expect(debugInfo.timestamp).toMatch(/\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}/)
+      expect(debugInfo.timestamp).toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?/)
     })
 
     it('should provide mock data for development', () => {
@@ -171,12 +171,13 @@ describe('Local Development Integration Patterns', () => {
 
     it('should validate API response structures', () => {
       // Test API response validation utilities
-      const validateAuthResponse = (response: any) => {
+      const validateAuthResponse = (response: any): boolean => {
+        if (!response || typeof response !== 'object') return false
         const hasValidStructure = 
-          response && 
-          typeof response === 'object' &&
-          ('data' in response || 'error' in response)
-        
+          'data' in response && 
+          'error' in response &&
+          (response.data === null || typeof response.data === 'object') &&
+          (response.error === null || typeof response.error === 'object')
         return hasValidStructure
       }
       
@@ -213,10 +214,11 @@ describe('Local Development Integration Patterns', () => {
     })
 
     it('should provide test data factories', () => {
-      // Test data factory patterns
+      // Test data factory patterns with counter for unique IDs
+      let userCounter = 0
       const createTestUser = (overrides = {}) => ({
-        id: `test-user-${Date.now()}`,
-        email: `test-${Date.now()}@example.com`,
+        id: `test-user-${++userCounter}-${Date.now()}`,
+        email: `test-${userCounter}-${Date.now()}@example.com`,
         aud: 'authenticated',
         created_at: new Date().toISOString(),
         ...overrides
