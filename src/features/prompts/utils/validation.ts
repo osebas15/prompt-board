@@ -117,7 +117,10 @@ export type PromptResponse = z.infer<typeof PromptResponseSchema>;
 export type PromptsListResponse = z.infer<typeof PromptsListResponseSchema>;
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
 
-// Validation helper functions
+// Export individual schemas with both upper and lower case names for compatibility
+export const createPromptSchema = CreatePromptSchema;
+export const updatePromptSchema = UpdatePromptSchema;
+export const promptFiltersSchema = PromptFiltersSchema;
 export const validatePrompt = (data: unknown): Prompt => {
   return PromptSchema.parse(data);
 };

@@ -1,22 +1,98 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PromptService } from '../services/PromptService';
-import type { CreatePromptData, UpdatePromptData, PromptFilters } from '../types';
+import type { CreatePrompt, UpdatePrompt, PromptFilters } from '../utils/validation';
 
 // Mock Supabase
-vi.mock('../../../lib/supabase', () => ({
+const mockSupabaseFrom = vi.fn();
+const mockSupabaseAuth = {
+  getUser: vi.fn().mockResolvedValue({
+    data: { user: { id: 'test-user-id' } },
+    error: null
+  })
+};
+
+vi.mock('@/lib/supabase', () => ({
   supabase: {
-    from: vi.fn(),
-    auth: {
-      getUser: vi.fn().mockResolvedValue({
-        data: { user: { id: 'test-user-id' } },
-        error: null
-      })
-    }
+    from: mockSupabaseFrom,
+    auth: mockSupabaseAuth,
+    rpc: vi.fn()
   }
 }));
 
+// Mock query chain
+const mockSelect = vi.fn();
+const mockInsert = vi.fn();
+const mockUpdate = vi.fn();
+const mockDelete = vi.fn();
+const mockEq = vi.fn();
+const mockSingle = vi.fn();
+const mockOrder = vi.fn();
+const mockLimit = vi.fn();
+const mockRange = vi.fn();
+const mockIlike = vi.fn();
+const mockContains = vi.fn();
+
 describe('PromptService', () => {
   let promptService: PromptService;
+  
+  beforeEach(() => {
+    promptService = new PromptService();
+    vi.clearAllMocks();
+    
+    // Setup mock chain
+    mockSupabaseFrom.mockReturnValue({
+      select: mockSelect,
+      insert: mockInsert,
+      update: mockUpdate,
+      delete: mockDelete
+    });
+    
+    mockSelect.mockReturnValue({
+      eq: mockEq,
+      order: mockOrder,
+      limit: mockLimit,
+      range: mockRange,
+      ilike: mockIlike,
+      contains: mockContains
+    });
+    
+    mockInsert.mockReturnValue({
+      select: mockSelect,
+      single: mockSingle
+    });
+    
+    mockUpdate.mockReturnValue({
+      eq: mockEq,
+      select: mockSelect,
+      single: mockSingle
+    });
+    
+    mockDelete.mockReturnValue({
+      eq: mockEq
+    });
+    
+    mockEq.mockReturnValue({
+      select: mockSelect,
+      single: mockSingle,
+      order: mockOrder,
+      limit: mockLimit,
+      range: mockRange
+    });
+    
+    mockOrder.mockReturnValue({
+      limit: mockLimit,
+      range: mockRange
+    });
+    
+    mockLimit.mockReturnValue({
+      range: mockRange
+    });
+    
+    mockSingle.mockResolvedValue({
+      data: null,
+      error: null
+    });
+  });
   
   beforeEach(() => {
     promptService = new PromptService();
@@ -25,11 +101,24 @@ describe('PromptService', () => {
 
   describe('createPrompt', () => {
     it('should create a new prompt template with required fields', async () => {
-      const createData: CreatePromptData = {
+      const createData: CreatePrompt = {
         title: 'Test Prompt',
         content: 'This is a test prompt content',
+        category: null,
+        category_id: null,
         tags: ['test', 'example'],
-        is_public: false
+        is_public: false,
+        user_id: 'user123',
+        last_used_at: null,
+        rating: null,
+        description: 'Test description',
+        model_compatibility: null,
+        parameters: null,
+        is_favorite: false,
+        folder_id: null,
+        parent_id: null,
+        is_template: false,
+        template_variables: null
       };
 
       const result = await promptService.createPrompt(createData);
@@ -44,7 +133,7 @@ describe('PromptService', () => {
     });
 
     it('should create prompt with category when provided', async () => {
-      const createData: CreatePromptData = {
+      const createData: CreatePrompt = {
         title: 'Categorized Prompt',
         content: 'Content with category',
         category_id: 'test-category-id',
@@ -59,7 +148,7 @@ describe('PromptService', () => {
     });
 
     it('should throw error when title is empty', async () => {
-      const invalidData: CreatePromptData = {
+      const invalidData: CreatePrompt = {
         title: '',
         content: 'Content',
         tags: []
@@ -70,7 +159,7 @@ describe('PromptService', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      const createData: CreatePromptData = {
+      const createData: CreatePrompt = {
         title: 'Test Prompt',
         content: 'Content',
         tags: []
@@ -191,7 +280,7 @@ describe('PromptService', () => {
   describe('updatePrompt', () => {
     it('should update existing prompt', async () => {
       const promptId = 'test-prompt-id';
-      const updateData: UpdatePromptData = {
+      const updateData: UpdatePrompt = {
         title: 'Updated Title',
         content: 'Updated content',
         tags: ['updated', 'test']
@@ -207,7 +296,7 @@ describe('PromptService', () => {
 
     it('should only update provided fields', async () => {
       const promptId = 'test-prompt-id';
-      const partialUpdate: UpdatePromptData = {
+      const partialUpdate: UpdatePrompt = {
         title: 'Only Title Updated'
       };
 
@@ -218,7 +307,7 @@ describe('PromptService', () => {
     });
 
     it('should throw error for non-existent prompt', async () => {
-      const updateData: UpdatePromptData = {
+      const updateData: UpdatePrompt = {
         title: 'New Title'
       };
 
@@ -228,7 +317,7 @@ describe('PromptService', () => {
 
     it('should validate user ownership before update', async () => {
       const promptId = 'other-user-prompt-id';
-      const updateData: UpdatePromptData = {
+      const updateData: UpdatePrompt = {
         title: 'Unauthorized Update'
       };
 

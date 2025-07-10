@@ -405,6 +405,27 @@ export class PromptService {
   async getPromptVersions(parentId: string, pagination?: Pagination): Promise<PromptsListResponse> {
     return this.listPrompts({ parent_id: parentId }, pagination);
   }
+
+  /**
+   * Get prompts with filters and pagination (alias for listPrompts for test compatibility)
+   */
+  async getPrompts(filters: PromptFilters = {}, pagination: Pagination = { page: 1, limit: 10, sort_by: 'created_at', sort_order: 'desc' }): Promise<PromptsListResponse> {
+    return this.listPrompts(filters, pagination);
+  }
+
+  /**
+   * Get prompt by ID (alias for getPrompt for test compatibility)
+   */
+  async getPromptById(id: string): Promise<Prompt | null> {
+    return this.getPrompt(id);
+  }
+
+  /**
+   * Increment usage (alias for incrementUsageCount for test compatibility)
+   */
+  async incrementUsage(id: string): Promise<Prompt> {
+    return this.incrementUsageCount(id);
+  }
 }
 
 // Export singleton instance

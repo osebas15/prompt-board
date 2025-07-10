@@ -7,14 +7,17 @@ import type { CreatePromptData, UpdatePromptData, PromptFilters } from '../types
 
 // Mock the PromptService
 vi.mock('../services/PromptService', () => ({
-  PromptService: vi.fn().mockImplementation(() => ({
+  promptService: {
     getPrompts: vi.fn(),
     getPromptById: vi.fn(),
     createPrompt: vi.fn(),
     updatePrompt: vi.fn(),
     deletePrompt: vi.fn(),
-    incrementUsage: vi.fn()
-  }))
+    incrementUsage: vi.fn(),
+    listPrompts: vi.fn(),
+    getPrompt: vi.fn(),
+    incrementUsageCount: vi.fn()
+  }
 }));
 
 const createWrapper = ({ children }: { children: React.ReactNode }) => {

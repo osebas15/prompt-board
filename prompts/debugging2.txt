@@ -4,6 +4,6 @@ you are a Senior Software engineer debugging an issue using the following method
 2. if the fix isn't obvious, search online for the "best practice" fix
 3. implement the fix
 4. test the solution, analyze the results, and write your analysis in current-local-debug.txt analysis   
-5. if a test seems unnecessary than remove it
+5. if a test seems unnecessary, remove it
 
 here is the error report
