@@ -4,16 +4,19 @@ import {
   updatePromptSchema, 
   promptFiltersSchema 
 } from '../utils/validation';
-import type { CreatePromptData, UpdatePromptData, PromptFilters } from '../types';
+import type { CreatePrompt, UpdatePrompt, PromptFilters } from '../utils/validation';
 
 describe('Prompt Validation Schemas', () => {
   describe('createPromptSchema', () => {
     it('should validate valid prompt data', () => {
-      const validData: CreatePromptData = {
+      const validData: CreatePrompt = {
         title: 'Test Prompt',
         content: 'This is a test prompt with sufficient content',
         tags: ['test', 'example'],
-        is_public: false
+        is_public: false,
+        user_id: '123e4567-e89b-12d3-a456-426614174000',
+        is_favorite: false,
+        is_template: false
       };
 
       const result = createPromptSchema.safeParse(validData);
@@ -24,10 +27,11 @@ describe('Prompt Validation Schemas', () => {
     });
 
     it('should reject empty title', () => {
-      const invalidData: Partial<CreatePromptData> = {
+      const invalidData: Partial<CreatePrompt> = {
         title: '',
         content: 'Content',
-        tags: []
+        tags: [],
+        user_id: 'test-user-id'
       };
 
       const result = createPromptSchema.safeParse(invalidData);
@@ -43,10 +47,11 @@ describe('Prompt Validation Schemas', () => {
     });
 
     it('should reject title longer than 200 characters', () => {
-      const invalidData: Partial<CreatePromptData> = {
-        title: 'x'.repeat(201),
+      const invalidData: Partial<CreatePrompt> = {
+        title: 'x'.repeat(256),
         content: 'Content',
-        tags: []
+        tags: [],
+        user_id: 'test-user-id'
       };
 
       const result = createPromptSchema.safeParse(invalidData);
@@ -55,17 +60,18 @@ describe('Prompt Validation Schemas', () => {
         expect(result.error.errors).toContainEqual(
           expect.objectContaining({
             path: ['title'],
-            message: expect.stringContaining('200')
+            message: expect.stringContaining('255')
           })
         );
       }
     });
 
     it('should reject empty content', () => {
-      const invalidData: Partial<CreatePromptData> = {
+      const invalidData: Partial<CreatePrompt> = {
         title: 'Title',
         content: '',
-        tags: []
+        tags: [],
+        user_id: 'test-user-id'
       };
 
       const result = createPromptSchema.safeParse(invalidData);
@@ -81,7 +87,7 @@ describe('Prompt Validation Schemas', () => {
     });
 
     it('should reject content longer than 10000 characters', () => {
-      const invalidData: Partial<CreatePromptData> = {
+      const invalidData: Partial<CreatePrompt> = {
         title: 'Title',
         content: 'x'.repeat(10001),
         tags: []
@@ -100,11 +106,15 @@ describe('Prompt Validation Schemas', () => {
     });
 
     it('should validate optional category_id as UUID', () => {
-      const validData: CreatePromptData = {
+      const validData: CreatePrompt = {
         title: 'Test',
         content: 'Content',
         category_id: '123e4567-e89b-12d3-a456-426614174000',
-        tags: []
+        tags: [],
+        user_id: '123e4567-e89b-12d3-a456-426614174000',
+        is_public: false,
+        is_favorite: false,
+        is_template: false
       };
 
       const result = createPromptSchema.safeParse(validData);
@@ -120,7 +130,7 @@ describe('Prompt Validation Schemas', () => {
     });
 
     it('should validate tags array with string elements', () => {
-      const validData: CreatePromptData = {
+      const validData: CreatePrompt = {
         title: 'Test',
         content: 'Content',
         tags: ['tag1', 'tag-2', 'tag_3']
@@ -139,7 +149,7 @@ describe('Prompt Validation Schemas', () => {
     });
 
     it('should limit tags to maximum of 10', () => {
-      const invalidData: CreatePromptData = {
+      const invalidData: CreatePrompt = {
         title: 'Test',
         content: 'Content',
         tags: Array(11).fill('tag') // 11 tags
@@ -158,7 +168,7 @@ describe('Prompt Validation Schemas', () => {
     });
 
     it('should validate is_public as boolean with default false', () => {
-      const dataWithoutPublic: Omit<CreatePromptData, 'is_public'> = {
+      const dataWithoutPublic: Omit<CreatePrompt, 'is_public'> = {
         title: 'Test',
         content: 'Content',
         tags: []
@@ -174,7 +184,7 @@ describe('Prompt Validation Schemas', () => {
 
   describe('updatePromptSchema', () => {
     it('should validate partial updates', () => {
-      const validUpdates: UpdatePromptData[] = [
+      const validUpdates: UpdatePrompt[] = [
         { title: 'New Title' },
         { content: 'New Content' },
         { tags: ['new', 'tags'] },
@@ -189,7 +199,7 @@ describe('Prompt Validation Schemas', () => {
     });
 
     it('should allow empty updates', () => {
-      const emptyUpdate: UpdatePromptData = {};
+      const emptyUpdate: UpdatePrompt = {};
       
       const result = updatePromptSchema.safeParse(emptyUpdate);
       expect(result.success).toBe(true);

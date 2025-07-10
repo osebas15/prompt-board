@@ -27,12 +27,23 @@ export const PromptSchema = z.object({
 });
 
 // Schema for creating new prompts (without generated fields)
-export const CreatePromptSchema = PromptSchema.omit({
-  id: true,
-  created_at: true,
-  updated_at: true,
-  usage_count: true,
-  version: true
+export const CreatePromptSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(255, 'Title must be less than 255 characters'),
+  content: z.string().min(1, 'Content is required').max(10000, 'Content must be less than 10000 characters'),
+  category: z.string().nullable().optional(),
+  category_id: z.string().uuid().nullable().optional(),
+  tags: z.array(z.string().max(30, 'Tag must be less than 30 characters')).max(10, 'Maximum 10 tags allowed').default([]),
+  is_public: z.boolean().default(false),
+  user_id: z.string().uuid(),
+  rating: z.number().min(0).max(5).nullable().optional(),
+  description: z.string().max(500, 'Description must be less than 500 characters').nullable().optional(),
+  model_compatibility: z.array(z.string()).nullable().optional(),
+  parameters: z.record(z.any()).nullable().optional(),
+  is_favorite: z.boolean().default(false),
+  folder_id: z.string().uuid().nullable().optional(),
+  parent_id: z.string().uuid().nullable().optional(),
+  is_template: z.boolean().default(false),
+  template_variables: z.array(z.string()).nullable().optional()
 });
 
 // Schema for updating prompts (all fields optional except those that shouldn't be changed)
@@ -46,13 +57,13 @@ export const UpdatePromptSchema = PromptSchema.partial().omit({
 export const PromptFiltersSchema = z.object({
   category: z.string().optional(),
   category_id: z.string().uuid().optional(),
-  tags: z.array(z.string()).optional(),
+  tags: z.array(z.string().max(30, 'Tag must be less than 30 characters')).max(10, 'Maximum 10 tags allowed').optional(),
   is_public: z.boolean().optional(),
   is_favorite: z.boolean().optional(),
   folder_id: z.string().uuid().optional(),
   parent_id: z.string().uuid().optional(),
   is_template: z.boolean().optional(),
-  search: z.string().optional(),
+  search: z.string().max(500, 'Search string must be less than 500 characters').optional(),
   user_id: z.string().uuid().optional(),
   model_compatibility: z.array(z.string()).optional(),
   rating_min: z.number().min(0).max(5).optional(),

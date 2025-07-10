@@ -3,19 +3,17 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement } from 'react';
 import { usePrompts, usePrompt, useCreatePrompt, useUpdatePrompt, useDeletePrompt } from '../hooks/usePrompts';
-import type { CreatePromptData, UpdatePromptData, PromptFilters } from '../types';
+import type { CreatePrompt, UpdatePrompt, PromptFilters } from '../utils/validation';
+import { promptService } from '../services/PromptService';
 
 // Mock the PromptService
 vi.mock('../services/PromptService', () => ({
   promptService: {
-    getPrompts: vi.fn(),
-    getPromptById: vi.fn(),
+    listPrompts: vi.fn(),
+    getPrompt: vi.fn(),
     createPrompt: vi.fn(),
     updatePrompt: vi.fn(),
     deletePrompt: vi.fn(),
-    incrementUsage: vi.fn(),
-    listPrompts: vi.fn(),
-    getPrompt: vi.fn(),
     incrementUsageCount: vi.fn()
   }
 }));
@@ -82,10 +80,7 @@ describe('usePrompts hook', () => {
     it('should handle loading and error states', async () => {
       // Mock service to throw error
       const mockError = new Error('Network error');
-      vi.mocked(require('../services/PromptService').PromptService)
-        .mockImplementation(() => ({
-          getPrompts: vi.fn().mockRejectedValue(mockError)
-        }));
+      vi.mocked(promptService.listPrompts).mockRejectedValue(mockError);
 
       const { result } = renderHook(() => usePrompts(), {
         wrapper: createWrapper
@@ -145,10 +140,7 @@ describe('usePrompts hook', () => {
 
     it('should handle prompt not found', async () => {
       // Mock service to return null
-      vi.mocked(require('../services/PromptService').PromptService)
-        .mockImplementation(() => ({
-          getPromptById: vi.fn().mockResolvedValue(null)
-        }));
+      vi.mocked(promptService.getPrompt).mockResolvedValue(null);
 
       const { result } = renderHook(() => usePrompt('non-existent-id'), {
         wrapper: createWrapper
@@ -169,10 +161,14 @@ describe('usePrompts hook', () => {
         wrapper: createWrapper
       });
 
-      const createData: CreatePromptData = {
+      const createData: CreatePrompt = {
         title: 'New Prompt',
         content: 'New content',
-        tags: ['new']
+        tags: ['new'],
+        user_id: 'test-user-id',
+        is_public: false,
+        is_favorite: false,
+        is_template: false
       };
 
       expect(result.current.isIdle).toBe(true);
@@ -192,19 +188,20 @@ describe('usePrompts hook', () => {
     it('should handle creation errors', async () => {
       // Mock service to throw error
       const mockError = new Error('Creation failed');
-      vi.mocked(require('../services/PromptService').PromptService)
-        .mockImplementation(() => ({
-          createPrompt: vi.fn().mockRejectedValue(mockError)
-        }));
+      vi.mocked(promptService.createPrompt).mockRejectedValue(mockError);
 
       const { result } = renderHook(() => useCreatePrompt(), {
         wrapper: createWrapper
       });
 
-      const createData: CreatePromptData = {
+      const createData: CreatePrompt = {
         title: 'Failed Prompt',
         content: 'Content',
-        tags: []
+        tags: [],
+        user_id: 'test-user-id',
+        is_public: false,
+        is_favorite: false,
+        is_template: false
       };
 
       result.current.mutate(createData);
@@ -224,10 +221,14 @@ describe('usePrompts hook', () => {
         wrapper: createWrapper
       });
 
-      const createData: CreatePromptData = {
+      const createData: CreatePrompt = {
         title: 'Success Prompt',
         content: 'Content',
-        tags: []
+        tags: [],
+        user_id: 'test-user-id',
+        is_public: false,
+        is_favorite: false,
+        is_template: false
       };
 
       result.current.mutate(createData);
@@ -252,7 +253,7 @@ describe('usePrompts hook', () => {
 
       const updateData = {
         id: 'test-prompt-id',
-        data: { title: 'Updated Title' } as UpdatePromptData
+        data: { title: 'Updated Title' } as UpdatePrompt
       };
 
       result.current.mutate(updateData);
@@ -268,10 +269,7 @@ describe('usePrompts hook', () => {
 
     it('should handle update conflicts', async () => {
       const mockError = new Error('Version conflict');
-      vi.mocked(require('../services/PromptService').PromptService)
-        .mockImplementation(() => ({
-          updatePrompt: vi.fn().mockRejectedValue(mockError)
-        }));
+      vi.mocked(promptService.updatePrompt).mockRejectedValue(mockError);
 
       const { result } = renderHook(() => useUpdatePrompt(), {
         wrapper: createWrapper
@@ -279,7 +277,7 @@ describe('usePrompts hook', () => {
 
       const updateData = {
         id: 'test-prompt-id',
-        data: { title: 'Conflicted Update' } as UpdatePromptData
+        data: { title: 'Conflicted Update' } as UpdatePrompt
       };
 
       result.current.mutate(updateData);
@@ -313,10 +311,7 @@ describe('usePrompts hook', () => {
 
     it('should handle deletion errors gracefully', async () => {
       const mockError = new Error('Deletion failed');
-      vi.mocked(require('../services/PromptService').PromptService)
-        .mockImplementation(() => ({
-          deletePrompt: vi.fn().mockRejectedValue(mockError)
-        }));
+      vi.mocked(promptService.deletePrompt).mockRejectedValue(mockError);
 
       const { result } = renderHook(() => useDeletePrompt(), {
         wrapper: createWrapper
