@@ -133,7 +133,11 @@ describe('Prompt Validation Schemas', () => {
       const validData: CreatePrompt = {
         title: 'Test',
         content: 'Content',
-        tags: ['tag1', 'tag-2', 'tag_3']
+        tags: ['tag1', 'tag-2', 'tag_3'],
+        user_id: '123e4567-e89b-12d3-a456-426614174000',
+        is_public: false,
+        is_favorite: false,
+        is_template: false
       };
 
       const result = createPromptSchema.safeParse(validData);
@@ -171,7 +175,10 @@ describe('Prompt Validation Schemas', () => {
       const dataWithoutPublic: Omit<CreatePrompt, 'is_public'> = {
         title: 'Test',
         content: 'Content',
-        tags: []
+        tags: [],
+        user_id: '123e4567-e89b-12d3-a456-426614174000',
+        is_favorite: false,
+        is_template: false
       };
 
       const result = createPromptSchema.safeParse(dataWithoutPublic);
@@ -208,7 +215,7 @@ describe('Prompt Validation Schemas', () => {
     it('should validate field constraints when present', () => {
       const invalidUpdates = [
         { title: '' }, // Empty title
-        { title: 'x'.repeat(201) }, // Too long
+        { title: 'x'.repeat(256) }, // Too long
         { content: '' }, // Empty content
         { category_id: 'invalid-uuid' }, // Invalid UUID
         { tags: [''] } // Empty tag

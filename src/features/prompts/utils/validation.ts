@@ -32,7 +32,7 @@ export const CreatePromptSchema = z.object({
   content: z.string().min(1, 'Content is required').max(10000, 'Content must be less than 10000 characters'),
   category: z.string().nullable().optional(),
   category_id: z.string().uuid().nullable().optional(),
-  tags: z.array(z.string().max(30, 'Tag must be less than 30 characters')).max(10, 'Maximum 10 tags allowed').default([]),
+  tags: z.array(z.string().min(1, 'Tag cannot be empty').max(30, 'Tag must be less than 30 characters')).max(10, 'Maximum 10 tags allowed').default([]),
   is_public: z.boolean().default(false),
   user_id: z.string().uuid(),
   rating: z.number().min(0).max(5).nullable().optional(),
@@ -47,17 +47,33 @@ export const CreatePromptSchema = z.object({
 });
 
 // Schema for updating prompts (all fields optional except those that shouldn't be changed)
-export const UpdatePromptSchema = PromptSchema.partial().omit({
-  id: true,
-  created_at: true,
-  user_id: true
+export const UpdatePromptSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(255, 'Title must be less than 255 characters').optional(),
+  content: z.string().min(1, 'Content is required').max(10000, 'Content must be less than 10000 characters').optional(),
+  category: z.string().nullable().optional(),
+  category_id: z.string().uuid().nullable().optional(),
+  tags: z.array(z.string().min(1, 'Tag cannot be empty').max(30, 'Tag must be less than 30 characters')).max(10, 'Maximum 10 tags allowed').optional(),
+  is_public: z.boolean().optional(),
+  rating: z.number().min(0).max(5).nullable().optional(),
+  description: z.string().max(500, 'Description must be less than 500 characters').nullable().optional(),
+  model_compatibility: z.array(z.string()).nullable().optional(),
+  parameters: z.record(z.any()).nullable().optional(),
+  is_favorite: z.boolean().optional(),
+  folder_id: z.string().uuid().nullable().optional(),
+  parent_id: z.string().uuid().nullable().optional(),
+  is_template: z.boolean().optional(),
+  template_variables: z.array(z.string()).nullable().optional(),
+  updated_at: z.string().datetime().optional(),
+  last_used_at: z.string().datetime().nullable().optional(),
+  usage_count: z.number().int().min(0).optional(),
+  version: z.number().int().min(1).optional()
 });
 
 // Schema for prompt filters/search
 export const PromptFiltersSchema = z.object({
   category: z.string().optional(),
   category_id: z.string().uuid().optional(),
-  tags: z.array(z.string().max(30, 'Tag must be less than 30 characters')).max(10, 'Maximum 10 tags allowed').optional(),
+  tags: z.array(z.string().min(1, 'Tag cannot be empty').max(30, 'Tag must be less than 30 characters')).max(10, 'Maximum 10 tags allowed').optional(),
   is_public: z.boolean().optional(),
   is_favorite: z.boolean().optional(),
   folder_id: z.string().uuid().optional(),
