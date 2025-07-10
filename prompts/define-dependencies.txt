@@ -1,0 +1,5 @@
+you are a Senior Software Architect defining modules and dependencies for an mvp
+1. create modules.txt, in this document define the modules needed to implement this mvp
+2. search the project for existing, or search online for a modern, up to date; ways of fullfilling these dependencies with our current stack
+3. make mvp-init.sh which will automatically install required packages
+4. create dependencies.txt, a diagram showing how modules depend on each other
