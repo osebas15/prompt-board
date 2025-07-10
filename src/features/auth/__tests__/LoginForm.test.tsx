@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { LoginForm } from '../components/forms/LoginForm'
 import { AuthProvider } from '../providers/AuthProvider'
@@ -30,6 +30,19 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   <AuthProvider>{children}</AuthProvider>
 )
 
+// Helper function to render with proper act wrapping
+const renderWithAuth = async (component: React.ReactElement) => {
+  let result: any
+  await act(async () => {
+    result = render(component, { wrapper })
+  })
+  // Give AuthProvider time to initialize
+  await act(async () => {
+    await new Promise(resolve => setTimeout(resolve, 0))
+  })
+  return result
+}
+
 const getMockedSupabase = () => {
   const { supabase } = vi.mocked(supabaseModule)
   return {
@@ -58,8 +71,8 @@ describe('LoginForm', () => {
     mocks.signInWithPassword.mockResolvedValue({ data: { user: null, session: null }, error: null } as any)
   })
 
-  it('should render login form with email and password fields', () => {
-    render(<LoginForm />, { wrapper })
+  it('should render login form with email and password fields', async () => {
+    await renderWithAuth(<LoginForm />)
     
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
@@ -199,8 +212,8 @@ describe('LoginForm', () => {
     resolveLogin!({ data: { user: null, session: null }, error: null })
   })
 
-  it('should have links to signup and forgot password', () => {
-    render(<LoginForm />, { wrapper })
+  it('should have links to signup and forgot password', async () => {
+    await renderWithAuth(<LoginForm />)
     
     expect(screen.getByText(/don't have an account/i)).toBeInTheDocument()
     expect(screen.getByText(/forgot your password/i)).toBeInTheDocument()
