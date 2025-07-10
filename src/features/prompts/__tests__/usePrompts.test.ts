@@ -30,6 +30,68 @@ const createWrapper = ({ children }: { children: React.ReactNode }) => {
 
 describe('usePrompts hook', () => {
   let queryClient: QueryClient;
+  const mockPromptsResponse = {
+    data: [
+      {
+        id: '1',
+        title: 'Test Prompt 1',
+        content: 'Test content 1',
+        category: null,
+        category_id: null,
+        tags: ['test'],
+        is_public: true,
+        user_id: '123e4567-e89b-12d3-a456-426614174000',
+        usage_count: 0,
+        last_used_at: null,
+        rating: null,
+        description: null,
+        model_compatibility: null,
+        parameters: null,
+        is_favorite: false,
+        folder_id: null,
+        version: 1,
+        parent_id: null,
+        is_template: false,
+        template_variables: null,
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-01T00:00:00Z'
+      }
+    ],
+    pagination: {
+      page: 1,
+      limit: 10,
+      total: 1,
+      total_pages: 1,
+      has_next: false,
+      has_prev: false
+    },
+    success: true
+  };
+
+  const mockPrompt = {
+    id: 'test-prompt-id',
+    title: 'Test Prompt',
+    content: 'Test content',
+    category: null,
+    category_id: null,
+    tags: ['test'],
+    is_public: true,
+    user_id: '123e4567-e89b-12d3-a456-426614174000',
+    usage_count: 0,
+    last_used_at: null,
+    rating: null,
+    description: null,
+    model_compatibility: null,
+    parameters: null,
+    is_favorite: false,
+    folder_id: null,
+    version: 1,
+    parent_id: null,
+    is_template: false,
+    template_variables: null,
+    created_at: '2023-01-01T00:00:00Z',
+    updated_at: '2023-01-01T00:00:00Z'
+  };
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -39,6 +101,13 @@ describe('usePrompts hook', () => {
       }
     });
     vi.clearAllMocks();
+    
+    // Setup default mocks
+    vi.mocked(promptService.listPrompts).mockResolvedValue(mockPromptsResponse);
+    vi.mocked(promptService.getPrompt).mockResolvedValue(mockPrompt);
+    vi.mocked(promptService.createPrompt).mockResolvedValue(mockPrompt);
+    vi.mocked(promptService.updatePrompt).mockResolvedValue(mockPrompt);
+    vi.mocked(promptService.deletePrompt).mockResolvedValue(undefined);
   });
 
   describe('usePrompts', () => {
