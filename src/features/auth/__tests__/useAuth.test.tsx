@@ -3,6 +3,7 @@ import { renderHook } from '@testing-library/react'
 import { useAuth } from '../hooks/useAuth'
 import { AuthProvider } from '../providers/AuthProvider'
 import React from 'react'
+import * as supabaseModule from '@/lib/supabase'
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
@@ -22,7 +23,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 
 // Get references to mocked functions
 const getMockedSupabase = () => {
-  const { supabase } = vi.mocked(require('@/lib/supabase'))
+  const { supabase } = vi.mocked(supabaseModule)
   return {
     getSession: vi.mocked(supabase.auth.getSession),
     onAuthStateChange: vi.mocked(supabase.auth.onAuthStateChange),

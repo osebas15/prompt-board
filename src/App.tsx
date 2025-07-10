@@ -1,8 +1,8 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './features/auth/providers/AuthProvider'
-import { useAuth } from './features/auth/hooks/useAuth'
-import { EnvDebugger } from './components/EnvDebugger'
+import { AuthProvider } from '@/features/auth/providers/AuthProvider'
+import { useAuth } from '@/features/auth/hooks/useAuth'
+import { EnvDebugger } from '@/components/EnvDebugger'
 import './App.css'
 
 // Simple components for demonstration
