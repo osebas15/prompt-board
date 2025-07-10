@@ -1,0 +1,8 @@
+you are a Senior Software engineer debugging an issue using the following methodology
+
+1. describe the error, in a simple statement with all of the relevant technical issues
+2. if the fix isn't obvious, search online for the "best practice" fix
+3. implement the fix
+4. test the solution, analyze the results, and write your analysis in current-local-debug.txt analysis   
+
+here is the error report

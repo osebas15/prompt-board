@@ -27,6 +27,10 @@ describe('Supabase Client', () => {
     vi.clearAllMocks()
   })
 
+  afterEach(() => {
+    vi.resetModules()
+  })
+
   it('should initialize with correct configuration', async () => {
     const { createClient } = await import('@supabase/supabase-js')
     const { supabase } = await import('../supabase')
@@ -60,11 +64,11 @@ describe('Supabase Client', () => {
   })
 
   it('should throw error if environment variables are missing', async () => {
-    // Mock the env module to return invalid values
-    vi.doMock('../env', () => {
-      const originalEnv = vi.importActual('../env')
+    // Mock the env module to return invalid values using importOriginal
+    vi.doMock('../env', async (importOriginal) => {
+      const actual = await importOriginal() as any
       return {
-        ...originalEnv,
+        ...actual,
         validateEnv: vi.fn(() => {
           throw new Error('Missing required Supabase environment variables')
         }),

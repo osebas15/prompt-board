@@ -1,7 +1,0 @@
-you are a Senior Software engineer debugging an issue using the following methodology
-
-1. describe the error, in a simple statement with all of the relevant technical issues
-2. starting with the most likely to succeed follow these instruction
-3. test the solution and analyze the results
-
-here is the issue
