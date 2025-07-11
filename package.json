@@ -21,6 +21,9 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest --watch",
     "test:ci": "vitest run --coverage --reporter=verbose",
+    "test:integration": "vitest --config vitest.integration.config.ts",
+    "test:integration:run": "vitest run --config vitest.integration.config.ts",
+    "test:integration:watch": "vitest --config vitest.integration.config.ts --watch",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:restart": "supabase stop && supabase start",
@@ -29,6 +32,7 @@
     "supabase:studio": "supabase studio",
     "dev:local": "npm run supabase:start && npm run dev",
     "test:local": "npm run supabase:start && npm run test",
+    "test:integration:local": "npm run supabase:start && npm run test:integration:run",
     "test:docker": "docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit",
     "test:docker:clean": "docker-compose -f docker-compose.test.yml down -v"
   },

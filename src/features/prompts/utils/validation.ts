@@ -9,11 +9,20 @@ export const PromptSchema = z.object({
   category_id: z.string().uuid().nullable().default(null),
   tags: z.array(z.string().max(30, 'Tag must be less than 30 characters')).nullable().default(null),
   is_public: z.boolean().nullable().default(false),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
+  created_at: z.string().refine((val) => {
+    // Allow both ISO strings and Supabase timestamp formats
+    return !isNaN(Date.parse(val));
+  }, { message: "Invalid date format" }),
+  updated_at: z.string().refine((val) => {
+    // Allow both ISO strings and Supabase timestamp formats
+    return !isNaN(Date.parse(val));
+  }, { message: "Invalid date format" }),
   user_id: z.string().uuid(),
   usage_count: z.number().int().min(0).nullable().default(0),
-  last_used_at: z.string().datetime().nullable().default(null),
+  last_used_at: z.string().refine((val) => {
+    if (val === null || val === undefined) return true;
+    return !isNaN(Date.parse(val));
+  }, { message: "Invalid date format" }).nullable().default(null),
   rating: z.number().min(0).max(5).nullable().default(null),
   description: z.string().max(500, 'Description must be less than 500 characters').nullable().default(null),
   model_compatibility: z.array(z.string()).nullable().default(null),
