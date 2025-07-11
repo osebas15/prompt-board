@@ -60,6 +60,8 @@ export default defineConfig({
       'dist/',
       '.git/',
       '.cache/',
+      // Exclude integration tests from unit tests
+      '**/*.integration.test.*',
     ],
     
     // Reporter configuration
