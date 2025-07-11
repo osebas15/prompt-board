@@ -1,0 +1,12 @@
+you are a Senior Software Engineer fixing tests that are failing with the below methodology
+for each failing test
+
+1. verify if this test is good practice, if not remove it or fix it, and move on to the next test, else go to step 2
+2. load any local dependencies like the file being tested into this chat
+3. find a solution to the test, and run it again, if it passes, move on to the next test
+4. summarize the problem, then search the internet for the best practice solution to resolving this problem
+5. if an llm like you can be reasonably expected to resolve this, try to resolve this, else move on the next test
+6. run the test again, don't try to solve anymore,  
+
+once you have done this for all tests, create a document {mm_dd_hour:minute}-test-results.txt focusing only on failing tests, explain why you skiped it, and if applicable, the online sources used in reference
+below are the failing tests

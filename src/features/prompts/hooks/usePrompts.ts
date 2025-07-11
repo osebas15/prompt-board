@@ -37,12 +37,13 @@ export const promptQueryKeys = {
 
 // Hook to get a single prompt
 export function usePrompt(
-  id: string,
+  id: string | undefined,
   options?: Omit<UseQueryOptions<Prompt | null, Error>, 'queryKey' | 'queryFn'>
 ) {
   return useQuery({
-    queryKey: promptQueryKeys.detail(id),
-    queryFn: () => promptService.getPrompt(id),
+    queryKey: promptQueryKeys.detail(id || ''),
+    queryFn: () => promptService.getPrompt(id!),
+    enabled: !!id,
     ...options
   });
 }
