@@ -57,7 +57,8 @@ export const PromptCard: React.FC<PromptCardProps> = ({
         ${variant === 'list' ? 'flex items-center space-x-4' : ''}
       `}
       onClick={handleClick}
-      data-testid="prompt-card"
+      data-testid={`prompt-card-${prompt.id}`}
+      tabIndex={0}
     >
       {/* Selection checkbox */}
       {onSelect && (
@@ -98,7 +99,10 @@ export const PromptCard: React.FC<PromptCardProps> = ({
 
         {/* Stats */}
         <div className="flex items-center text-sm text-gray-500 space-x-4" data-testid="prompt-stats">
-          <span>Used {prompt.usage_count} times</span>
+          <span>{prompt.usage_count} uses</span>
+          {prompt.category && (
+            <span className="text-blue-600">{prompt.category}</span>
+          )}
           {prompt.is_public && (
             <span className="text-green-600">Public</span>
           )}

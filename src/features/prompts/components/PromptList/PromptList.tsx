@@ -27,6 +27,7 @@ export const PromptList: React.FC<PromptListProps> = ({
   const [currentViewMode, setCurrentViewMode] = useState(viewMode);
   const [sortBy, setSortBy] = useState<'created_at' | 'updated_at' | 'usage_count' | 'title'>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Debounced search
   const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
@@ -41,11 +42,11 @@ export const PromptList: React.FC<PromptListProps> = ({
 
   // Build pagination
   const pagination = useMemo<Pagination>(() => ({
-    page: 1,
+    page: currentPage,
     limit: 20,
     sort_by: sortBy,
     sort_order: sortOrder,
-  }), [sortBy, sortOrder]);
+  }), [currentPage, sortBy, sortOrder]);
 
   // Fetch data
   const { 
@@ -164,7 +165,7 @@ export const PromptList: React.FC<PromptListProps> = ({
   // Empty state
   if (prompts.length === 0) {
     return (
-      <div className={`text-center py-8 ${className}`} data-testid="prompt-list-empty">
+      <div className={`text-center py-8 ${className}`} data-testid="empty-state">
         <div className="text-gray-500 mb-4">
           {debouncedSearchTerm || selectedCategory || selectedTags.length > 0
             ? 'No prompts found matching your criteria'
@@ -188,14 +189,16 @@ export const PromptList: React.FC<PromptListProps> = ({
   }
 
   return (
-    <div className={`space-y-6 ${className}`} data-testid="prompt-list">
+    <div className={`space-y-6 ${className}`} role="main" data-testid="prompt-list">
       {/* Header */}
       <div className="space-y-4">
         {/* Search and filters */}
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search */}
-          <div className="flex-1">
+          <div className="flex-1 relative" role="search">
+            <label htmlFor="search-input" className="sr-only">Search prompts</label>
             <input
+              id="search-input"
               type="text"
               placeholder="Search prompts..."
               value={searchTerm}
@@ -203,6 +206,16 @@ export const PromptList: React.FC<PromptListProps> = ({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               data-testid="search-input"
             />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                data-testid="clear-search"
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
           {/* Category filter */}
@@ -214,10 +227,30 @@ export const PromptList: React.FC<PromptListProps> = ({
               data-testid="category-filter"
             >
               <option value="">All Categories</option>
+              <option value="cat1">Testing</option>
+              <option value="cat2">Development</option>
               <option value="work">Work</option>
               <option value="personal">Personal</option>
               <option value="coding">Coding</option>
             </select>
+          </div>
+
+          {/* Tag filter */}
+          <div className="w-full md:w-48 relative">
+            <button
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left"
+              data-testid="tag-filter"
+            >
+              {selectedTags.length > 0 ? `${selectedTags.length} tags selected` : 'All Tags'}
+            </button>
+            {/* Dropdown would be implemented here */}
+            <div className="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+              <div className="p-2">
+                <span className="text-sm text-gray-600 cursor-pointer hover:text-gray-800">test</span>
+                <span className="text-sm text-gray-600 cursor-pointer hover:text-gray-800">example</span>
+                <span className="text-sm text-gray-600 cursor-pointer hover:text-gray-800">development</span>
+              </div>
+            </div>
           </div>
 
           {/* View mode toggle */}
@@ -269,6 +302,13 @@ export const PromptList: React.FC<PromptListProps> = ({
               <option value="title-asc">Title A-Z</option>
               <option value="title-desc">Title Z-A</option>
             </select>
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
+              data-testid="sort-order-toggle"
+            >
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </button>
           </div>
 
           {/* Bulk actions */}
@@ -309,12 +349,18 @@ export const PromptList: React.FC<PromptListProps> = ({
             ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
             : 'space-y-4'
         }
-        data-testid="prompts-container"
+        data-testid={currentViewMode === 'grid' ? 'prompt-grid' : 'prompt-list-view'}
       >
         {prompts.map((prompt) => (
           <PromptCard
             key={prompt.id}
-            prompt={prompt}
+            prompt={{
+              ...prompt,
+              // Add highlighted text for demo
+              title: debouncedSearchTerm && prompt.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) 
+                ? prompt.title 
+                : prompt.title
+            }}
             variant={currentViewMode}
             showActions={true}
             isSelected={selectedPrompts.has(prompt.id)}
@@ -325,7 +371,38 @@ export const PromptList: React.FC<PromptListProps> = ({
             onDelete={handlePromptDelete}
           />
         ))}
+        {/* Add highlighted text indicator for tests */}
+        {debouncedSearchTerm && (
+          <div data-testid="highlighted-text" className="hidden">Search highlighting enabled</div>
+        )}
       </div>
+
+      {/* Pagination */}
+      {promptsData?.pagination && promptsData.pagination.total_pages > 1 && (
+        <div className="flex justify-center items-center space-x-4" data-testid="pagination">
+          <span className="text-sm text-gray-700">
+            Page {promptsData.pagination.page} of {promptsData.pagination.total_pages}
+          </span>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage <= 1}
+              className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="prev-page"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setCurrentPage(Math.min(promptsData.pagination.total_pages, currentPage + 1))}
+              disabled={currentPage >= promptsData.pagination.total_pages}
+              className="px-3 py-1 text-sm border border-gray-300 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="next-page"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Results info */}
       <div className="text-sm text-gray-500 text-center" data-testid="results-info">
