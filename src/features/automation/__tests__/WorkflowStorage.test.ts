@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { WorkflowStorage } from '../services/WorkflowStorage';
 import type { Workflow, WorkflowExecution, WorkflowTemplate } from '../types';
 
-// Mock Supabase
+// Mock Supabase - define mocks first before any imports
 const createMockQuery = () => {
   const mockQuery = {
     select: vi.fn().mockReturnThis(),
@@ -35,6 +34,9 @@ const mockSupabaseClient = {
 vi.mock('../../../lib/supabase', () => ({
   supabase: mockSupabaseClient,
 }));
+
+// Import the module being tested after mocking dependencies
+import { WorkflowStorage } from '../services/WorkflowStorage';
 
 describe('WorkflowStorage', () => {
   let storage: WorkflowStorage;
