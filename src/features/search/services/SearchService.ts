@@ -9,6 +9,8 @@ import type {
 export class SearchService {
   private searchIndex: Fuse<GlobalSearchItem> | null = null;
   private items: GlobalSearchItem[] = [];
+  private searchHistory: string[] = [];
+  private maxHistorySize = 10;
 
   constructor() {
     this.initializeIndex();
@@ -23,7 +25,7 @@ export class SearchService {
         { name: 'tags', weight: 2 },
         { name: 'category', weight: 1.5 },
       ],
-      threshold: 0.3,
+      threshold: 0.6, // More permissive for longer partial matches
       includeScore: true,
       includeMatches: true,
       shouldSort: true,
@@ -35,32 +37,70 @@ export class SearchService {
 
   updateItems(items: GlobalSearchItem[]) {
     this.items = items;
-    this.searchIndex?.setCollection(items);
+    // Reinitialize the index with the new items
+    this.initializeIndex();
   }
 
-  search(
-    query: string, 
+  async search(
+    query: string | null | undefined, 
     filters: SearchFilters = {}, 
     options: SearchOptions = {}
-  ): SearchResult<GlobalSearchItem>[] {
-    if (!this.searchIndex || !query.trim()) {
-      return this.getFilteredItems(filters, options);
+  ): Promise<SearchResult<GlobalSearchItem>[]> {
+    try {
+      // Handle null/undefined queries
+      if (!query) {
+        // If there are filters but no query, return filtered results
+        if (Object.keys(filters).length > 0) {
+          return this.getFilteredItems(filters, options);
+        }
+        return [];
+      }
+
+      // Handle malformed queries
+      if (typeof query !== 'string') {
+        return [];
+      }
+
+      const trimmedQuery = query.trim();
+      
+      // Handle empty queries
+      if (!trimmedQuery) {
+        // If there are filters but no query, return filtered results
+        if (Object.keys(filters).length > 0) {
+          return this.getFilteredItems(filters, options);
+        }
+        return [];
+      }
+
+      // Add to search history if it's a real search
+      this.addToSearchHistory(trimmedQuery);
+
+      if (!this.searchIndex) {
+        return this.getFilteredItems(filters, options);
+      }
+
+      const results = this.searchIndex.search(trimmedQuery, {
+        limit: options.limit || 50,
+      });
+
+      // Apply additional filters
+      const filteredResults = results.filter(result => 
+        this.matchesFilters(result.item, filters)
+      );
+
+      return filteredResults.map(result => ({
+        item: result.item,
+        score: result.score,
+        matches: result.matches ? result.matches.map(match => ({
+          indices: match.indices.map(([start, end]) => [start, end] as [number, number]),
+          value: match.value || '',
+          key: match.key,
+        })) : undefined,
+      }));
+    } catch (error) {
+      console.error('Search service error:', error);
+      return [];
     }
-
-    const results = this.searchIndex.search(query, {
-      limit: options.limit || 50,
-    });
-
-    // Apply additional filters
-    const filteredResults = results.filter(result => 
-      this.matchesFilters(result.item, filters)
-    );
-
-    return filteredResults.map(result => ({
-      item: result.item,
-      score: result.score,
-      matches: result.matches,
-    }));
   }
 
   private getFilteredItems(
@@ -103,7 +143,10 @@ export class SearchService {
 
     if (filters.dateRange) {
       const itemDate = new Date(item.created_at);
-      if (itemDate < filters.dateRange.from || itemDate > filters.dateRange.to) {
+      const startDate = new Date(filters.dateRange.from);
+      const endDate = new Date(filters.dateRange.to);
+      
+      if (itemDate < startDate || itemDate > endDate) {
         return false;
       }
     }
@@ -111,20 +154,23 @@ export class SearchService {
     return true;
   }
 
-  getSuggestions(query: string, limit: number = 5): string[] {
-    if (!query.trim() || query.length < 2) {
+  async getSuggestions(query: string, limit: number = 5): Promise<string[]> {
+    if (!query || query.length < 2) {
       return [];
     }
 
+    // Extract suggestions from item titles and content
     const suggestions = new Set<string>();
     
-    // Get suggestions from titles
     this.items.forEach(item => {
-      if (item.title.toLowerCase().includes(query.toLowerCase())) {
-        suggestions.add(item.title);
-      }
+      // Add title words
+      item.title.split(' ').forEach(word => {
+        if (word.toLowerCase().includes(query.toLowerCase()) && word.length > 2) {
+          suggestions.add(word);
+        }
+      });
       
-      // Get suggestions from tags
+      // Add tags that match
       item.tags.forEach(tag => {
         if (tag.toLowerCase().includes(query.toLowerCase())) {
           suggestions.add(tag);
@@ -148,6 +194,51 @@ export class SearchService {
       .sort((a, b) => b[1] - a[1])
       .slice(0, limit)
       .map(([tag]) => tag);
+  }
+
+  // Search history methods
+  private addToSearchHistory(query: string) {
+    // Remove if already exists
+    const index = this.searchHistory.indexOf(query);
+    if (index > -1) {
+      this.searchHistory.splice(index, 1);
+    }
+    
+    // Add to beginning
+    this.searchHistory.unshift(query);
+    
+    // Limit size
+    if (this.searchHistory.length > this.maxHistorySize) {
+      this.searchHistory = this.searchHistory.slice(0, this.maxHistorySize);
+    }
+  }
+
+  getSearchHistory(): string[] {
+    return [...this.searchHistory];
+  }
+
+  clearSearchHistory(): void {
+    this.searchHistory = [];
+  }
+
+  // Index management methods
+  addItem(item: GlobalSearchItem): void {
+    this.items.push(item);
+    this.searchIndex?.add(item);
+  }
+
+  updateItem(item: GlobalSearchItem): void {
+    const index = this.items.findIndex(i => i.id === item.id);
+    if (index > -1) {
+      this.items[index] = item;
+      this.searchIndex?.remove((doc: GlobalSearchItem) => doc.id === item.id);
+      this.searchIndex?.add(item);
+    }
+  }
+
+  removeItem(id: string): void {
+    this.items = this.items.filter(item => item.id !== id);
+    this.searchIndex?.remove((doc: GlobalSearchItem) => doc.id === id);
   }
 }
 
