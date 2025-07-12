@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "vitest.explorer",
+    "ms-vscode.vscode-jest",
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "ms-vscode.vscode-typescript-next",
+    "ms-vscode.vscode-json",
+    "github.copilot",
+    "github.copilot-chat",
+    "ms-vscode.test-adapter-converter"
+  ]
+}

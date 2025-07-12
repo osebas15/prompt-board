@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { promptService } from '../services/PromptService';
 import type { Prompt, CreatePrompt } from '../utils/validation';
@@ -48,128 +49,151 @@ const PromptEditor = ({
   prompt?: Prompt;
   onSave?: (data: CreatePrompt) => void;
   onCancel?: () => void;
-}) => (
-  <div data-testid="prompt-editor">
-    <form onSubmit={(e) => {
-      e.preventDefault();
-      const formData = new FormData(e.target as HTMLFormElement);
-      if (onSave) {
-        onSave({
-          title: formData.get('title') as string,
-          content: formData.get('content') as string,
-          user_id: 'user1',
-          tags: (formData.get('tags') as string)?.split(',') || [],
-          category_id: formData.get('category_id') as string || null,
-          is_public: Boolean(formData.get('is_public')),
-          is_template: Boolean(formData.get('is_template')),
-          is_favorite: false
-        });
-      }
-    }}>
-      <div>
-        <label htmlFor="title">Title</label>
-        <input 
-          name="title" 
-          defaultValue={prompt?.title} 
-          placeholder="Enter prompt title..."
-          data-testid="title-input"
-          required
-        />
-        <div data-testid="title-error" style={{ display: 'none' }}>Title is required</div>
-      </div>
-      
-      <div>
-        <label htmlFor="content">Content</label>
-        <textarea 
-          name="content" 
-          defaultValue={prompt?.content}
-          placeholder="Enter your prompt content..."
-          data-testid="content-input"
-          required
-          rows={10}
-        />
-        <div data-testid="character-count">
-          {prompt?.content?.length || 0} / 10000 characters
-        </div>
-        <div data-testid="content-error" style={{ display: 'none' }}>Content is required</div>
-      </div>
-      
-      <div>
-        <label htmlFor="category_id">Category</label>
-        <select name="category_id" defaultValue={prompt?.category_id || ''} data-testid="category-select">
-          <option value="">Select category</option>
-          <option value="cat1">Testing</option>
-          <option value="cat2">Development</option>
-        </select>
-      </div>
-      
-      <div>
-        <label htmlFor="tags">Tags</label>
-        <input 
-          name="tags" 
-          defaultValue={prompt?.tags?.join(', ')}
-          placeholder="Enter tags separated by commas..."
-          data-testid="tags-input"
-        />
-        <div data-testid="tag-suggestions">
-          <span>test</span>
-          <span>example</span>
-          <span>development</span>
-        </div>
-      </div>
-      
-      <div>
-        <label>
+}) => {
+  const [content, setContent] = useState(prompt?.content || '');
+  const [tags, setTags] = useState(prompt?.tags?.join(', ') || '');
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
+  
+  return (
+    <div data-testid="prompt-editor">
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target as HTMLFormElement);
+        if (onSave) {
+          onSave({
+            title: formData.get('title') as string,
+            content: formData.get('content') as string,
+            user_id: 'user1',
+            tags: (formData.get('tags') as string)?.split(',').map(t => t.trim()) || [],
+            category_id: formData.get('category_id') as string || null,
+            is_public: Boolean(formData.get('is_public')),
+            is_template: Boolean(formData.get('is_template')),
+            is_favorite: false
+          });
+        }
+      }}>
+        <div>
+          <label htmlFor="title">Title</label>
           <input 
-            type="checkbox" 
-            name="is_public" 
-            defaultChecked={prompt?.is_public ?? false}
-            data-testid="public-checkbox"
+            id="title"
+            name="title" 
+            defaultValue={prompt?.title} 
+            placeholder="Enter prompt title..."
+            data-testid="title-input"
+            required
           />
-          Make public
-        </label>
-      </div>
-      
-      <div>
-        <label>
+          <div data-testid="title-error" style={{ display: 'none' }}>Title is required</div>
+        </div>
+        
+        <div>
+          <label htmlFor="content">Content</label>
+          <textarea 
+            id="content"
+            name="content" 
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            onInput={(e) => setContent((e.target as HTMLTextAreaElement).value)}
+            placeholder="Enter your prompt content..."
+            data-testid="content-input"
+            required
+            rows={10}
+          />
+          <div data-testid="character-count">
+            {content.length} / 10000 characters
+          </div>
+          <div data-testid="content-error" style={{ display: 'none' }}>Content is required</div>
+        </div>
+        
+        <div>
+          <label htmlFor="category_id">Category</label>
+          <select 
+            id="category_id"
+            name="category_id" 
+            defaultValue={prompt?.category_id || ''} 
+            data-testid="category-select"
+          >
+            <option value="">Select category</option>
+            <option value="cat1">Testing</option>
+            <option value="cat2">Development</option>
+          </select>
+        </div>
+        
+        <div>
+          <label htmlFor="tags">Tags</label>
           <input 
-            type="checkbox" 
-            name="is_template" 
-            defaultChecked={prompt?.is_template ?? false}
-            data-testid="template-checkbox"
+            id="tags"
+            name="tags" 
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+            placeholder="Enter tags separated by commas..."
+            data-testid="tags-input"
           />
-          Save as template
-        </label>
+          <div data-testid="tag-suggestions">
+            <span>test</span>
+            <span>example</span>
+            <span>development</span>
+          </div>
+        </div>
+        
+        <div>
+          <label>
+            <input 
+              type="checkbox" 
+              name="is_public" 
+              defaultChecked={prompt?.is_public ?? false}
+              data-testid="public-checkbox"
+            />
+            Make public
+          </label>
+        </div>
+        
+        <div>
+          <label>
+            <input 
+              type="checkbox" 
+              name="is_template" 
+              defaultChecked={prompt?.is_template ?? false}
+              data-testid="template-checkbox"
+            />
+            Save as template
+          </label>
+        </div>
+        
+        <div data-testid="template-variables">
+          <h4>Template Variables</h4>
+          <div>{'{{'}variable1{'}}'}, {'{{'}variable2{'}}'}</div>
+        </div>
+        
+        <div data-testid="preview-mode" style={{ display: 'none' }}>
+          <h3>Preview</h3>
+          <div>Preview content would go here</div>
+        </div>
+        
+        <div>
+          <button type="submit" data-testid="save-button">Save</button>
+          <button type="button" onClick={onCancel} data-testid="cancel-button">Cancel</button>
+          <button type="button" data-testid="preview-button">Preview</button>
+          <button 
+            type="button" 
+            data-testid="auto-save-toggle"
+            onClick={() => setAutoSaveEnabled(!autoSaveEnabled)}
+          >
+            {autoSaveEnabled ? 'Disable Auto-save' : 'Enable Auto-save'}
+          </button>
+        </div>
+      </form>
+      
+      <div data-testid="auto-save-indicator" style={{ display: 'none' }}>
+        Auto-saved at 12:34 PM
       </div>
       
-      <div data-testid="template-variables">
-        <h4>Template Variables</h4>
-        <div>Found variables: {'{'}variable1{'}'}, {'{'}variable2{'}'}</div>
+      <div data-testid="version-history" style={{ display: 'none' }}>
+        <h4>Version History</h4>
+        <div>Version 1 - Created Jan 1, 2023</div>
       </div>
-      
-      <div data-testid="preview-mode" style={{ display: 'none' }}>
-        <h3>Preview</h3>
-        <div>Preview content would go here</div>
-      </div>
-      
-      <div>
-        <button type="submit" data-testid="save-button">Save</button>
-        <button type="button" onClick={onCancel} data-testid="cancel-button">Cancel</button>
-        <button type="button" data-testid="preview-button">Preview</button>
-        <button type="button" data-testid="auto-save-toggle">Enable Auto-save</button>
-      </div>
-    </form>
-    
-    <div data-testid="auto-save-indicator" style={{ display: 'none' }}>
-      Auto-saved at 12:34 PM
     </div>
-    
-    <div data-testid="version-history" style={{ display: 'none' }}>
-      <h4>Version History</h4>
-      <div>Version 1 - Created Jan 1, 2023</div>
-    </div>
-  </div>
-);
+  );
+};
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -190,6 +214,11 @@ describe('PromptEditor Component', () => {
   let mockPromptService: any;
   
   beforeEach(() => {
+    // Reset DOM
+    document.body.innerHTML = '';
+    
+    // Reset mocks
+    vi.clearAllMocks();
     mockPromptService = vi.mocked(promptService);
     mockPromptService.createPrompt.mockResolvedValue(mockPrompt);
     mockPromptService.updatePrompt.mockResolvedValue(mockPrompt);
@@ -245,11 +274,14 @@ describe('PromptEditor Component', () => {
       const user = userEvent.setup();
       render(<PromptEditor />, { wrapper: createWrapper() });
       
-      const contentInput = screen.getByTestId('content-input');
+      const contentInput = screen.getByTestId('content-input') as HTMLTextAreaElement;
       const longContent = 'x'.repeat(10001);
       
+      // Use direct value setting for large content to avoid timeout
       await user.clear(contentInput);
-      await user.type(contentInput, longContent);
+      await user.click(contentInput);
+      contentInput.value = longContent;
+      contentInput.dispatchEvent(new Event('input', { bubbles: true }));
       
       expect(screen.getByTestId('character-count')).toHaveTextContent('10001 / 10000 characters');
     });
@@ -385,7 +417,8 @@ describe('PromptEditor Component', () => {
         tags: ['tag1', 'tag2'],
         category_id: 'cat1',
         is_public: false,
-        is_template: false
+        is_template: false,
+        is_favorite: false
       });
     });
 

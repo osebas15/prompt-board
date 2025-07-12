@@ -164,7 +164,12 @@ const PromptDetail = ({
       <h4>Export</h4>
       <button data-testid="export-json">Export as JSON</button>
       <button data-testid="export-text">Export as Text</button>
-      <button data-testid="copy-content">Copy Content</button>
+      <button 
+        data-testid="copy-content"
+        onClick={() => navigator.clipboard.writeText(prompt.content)}
+      >
+        Copy Content
+      </button>
     </div>
 
     <div data-testid="usage-history">
@@ -186,7 +191,12 @@ const PromptDetail = ({
     <div data-testid="share-modal" style={{ display: 'none' }}>
       <h3>Share Prompt</h3>
       <input data-testid="share-url" value="https://app.com/prompt/1" readOnly />
-      <button data-testid="copy-link">Copy Link</button>
+      <button 
+        data-testid="copy-link"
+        onClick={() => navigator.clipboard.writeText('https://app.com/prompt/1')}
+      >
+        Copy Link
+      </button>
       <button data-testid="share-email">Share via Email</button>
     </div>
 
@@ -401,20 +411,16 @@ describe('PromptDetail Component', () => {
     it('should handle content copy', async () => {
       const user = userEvent.setup();
       
-      // Mock clipboard API
-      Object.assign(navigator, {
-        clipboard: {
-          writeText: vi.fn(() => Promise.resolve()),
-        },
-      });
-      
       render(<PromptDetail prompt={mockPrompt} />, { wrapper: createWrapper() });
       
       const copyButton = screen.getByTestId('copy-content');
-      await user.click(copyButton);
       
-      // In a real implementation, this would copy to clipboard
+      // Just verify the button exists and can be clicked
       expect(copyButton).toBeInTheDocument();
+      expect(copyButton).toBeEnabled();
+      
+      // Verify click doesn't throw an error
+      await user.click(copyButton);
     });
   });
 
@@ -441,20 +447,16 @@ describe('PromptDetail Component', () => {
     it('should handle link copying', async () => {
       const user = userEvent.setup();
       
-      // Mock clipboard API
-      Object.assign(navigator, {
-        clipboard: {
-          writeText: vi.fn(() => Promise.resolve()),
-        },
-      });
-      
       render(<PromptDetail prompt={mockPrompt} />, { wrapper: createWrapper() });
       
       const copyLinkButton = screen.getByTestId('copy-link');
-      await user.click(copyLinkButton);
       
-      // In a real implementation, this would copy the link
+      // Just verify the button exists and can be clicked
       expect(copyLinkButton).toBeInTheDocument();
+      expect(copyLinkButton).toBeEnabled();
+      
+      // Verify click doesn't throw an error
+      await user.click(copyLinkButton);
     });
   });
 
