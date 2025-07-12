@@ -5,9 +5,12 @@ export class LLMService {
   private provider: LLMProvider;
 
   constructor() {
-    const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    // Support both old and new env var names for compatibility
+    const geminiApiKey = import.meta.env.VITE_GOOGLE_API_KEY || 
+                        import.meta.env.VITE_GEMINI_API_KEY;
+    
     if (!geminiApiKey) {
-      throw new Error('VITE_GEMINI_API_KEY environment variable is required');
+      throw new Error('API key required: Set VITE_GOOGLE_API_KEY or VITE_GEMINI_API_KEY environment variable');
     }
     
     this.provider = new GeminiProvider(geminiApiKey);

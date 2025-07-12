@@ -1,12 +1,15 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { LLMProvider, LLMMessage, LLMConfig, StreamingOptions } from '../../types';
+import { GoogleGenAI } from '@google/genai';
+import type { LLMProvider, LLMMessage, LLMConfig } from '../../types';
 
 export class GeminiProvider implements LLMProvider {
   name = 'gemini';
-  private client: GoogleGenerativeAI;
+  private client: GoogleGenAI;
 
   constructor(apiKey: string) {
-    this.client = new GoogleGenerativeAI(apiKey);
+    if (!apiKey || apiKey.trim().length === 0) {
+      throw new Error('Gemini API key is required and cannot be empty');
+    }
+    this.client = new GoogleGenAI({ apiKey });
   }
 
   async sendMessage(
@@ -14,35 +17,47 @@ export class GeminiProvider implements LLMProvider {
     config?: LLMConfig,
     onStream?: (chunk: string) => void
   ): Promise<string> {
-    const model = this.client.getGenerativeModel({ 
-      model: config?.model || 'gemini-pro',
-      generationConfig: {
-        temperature: config?.temperature,
-        maxOutputTokens: config?.maxTokens,
-        topP: config?.topP,
-        topK: config?.topK,
-      }
-    });
-
     try {
       if (onStream) {
-        const result = await model.generateContentStream(message);
+        // Streaming mode using new SDK
+        const response = await this.client.models.generateContentStream({
+          model: config?.model || 'gemini-2.0-flash-exp',
+          contents: message,
+          config: {
+            temperature: config?.temperature,
+            maxOutputTokens: config?.maxTokens,
+            topP: config?.topP,
+            topK: config?.topK,
+          }
+        });
+
         let fullResponse = '';
-        
-        for await (const chunk of result.stream) {
-          const chunkText = chunk.text();
+        for await (const chunk of response) {
+          const chunkText = chunk.text || '';
           fullResponse += chunkText;
           onStream(chunkText);
         }
         
         return fullResponse;
       } else {
-        const result = await model.generateContent(message);
-        return result.response.text();
+        // Non-streaming mode
+        const response = await this.client.models.generateContent({
+          model: config?.model || 'gemini-2.0-flash-exp',
+          contents: message,
+          config: {
+            temperature: config?.temperature,
+            maxOutputTokens: config?.maxTokens,
+            topP: config?.topP,
+            topK: config?.topK,
+          }
+        });
+        
+        return response.text || '';
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Gemini API error:', error);
-      throw new Error(`Failed to get response from Gemini: ${error.message}`);
+      throw new Error(`Failed to get response from Gemini: ${errorMessage}`);
     }
   }
 
@@ -51,44 +66,53 @@ export class GeminiProvider implements LLMProvider {
     config?: LLMConfig,
     onStream?: (chunk: string) => void
   ): Promise<string> {
-    const model = this.client.getGenerativeModel({ 
-      model: config?.model || 'gemini-pro',
-      generationConfig: {
-        temperature: config?.temperature,
-        maxOutputTokens: config?.maxTokens,
-        topP: config?.topP,
-        topK: config?.topK,
-      }
-    });
-
     try {
-      // Convert messages to Gemini format
-      const history = messages.slice(0, -1).map(msg => ({
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content }],
+      // Convert messages to new SDK format
+      const contents = messages.map(msg => ({
+        role: msg.role === 'assistant' ? 'model' : msg.role,
+        parts: [{ text: msg.content }]
       }));
 
-      const chat = model.startChat({ history });
-      const lastMessage = messages[messages.length - 1];
-
       if (onStream) {
-        const result = await chat.sendMessageStream(lastMessage.content);
+        // Streaming conversation mode
+        const response = await this.client.models.generateContentStream({
+          model: config?.model || 'gemini-2.0-flash-exp',
+          contents,
+          config: {
+            temperature: config?.temperature,
+            maxOutputTokens: config?.maxTokens,
+            topP: config?.topP,
+            topK: config?.topK,
+          }
+        });
+
         let fullResponse = '';
-        
-        for await (const chunk of result.stream) {
-          const chunkText = chunk.text();
+        for await (const chunk of response) {
+          const chunkText = chunk.text || '';
           fullResponse += chunkText;
           onStream(chunkText);
         }
         
         return fullResponse;
       } else {
-        const result = await chat.sendMessage(lastMessage.content);
-        return result.response.text();
+        // Non-streaming conversation mode
+        const response = await this.client.models.generateContent({
+          model: config?.model || 'gemini-2.0-flash-exp',
+          contents,
+          config: {
+            temperature: config?.temperature,
+            maxOutputTokens: config?.maxTokens,
+            topP: config?.topP,
+            topK: config?.topK,
+          }
+        });
+        
+        return response.text || '';
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       console.error('Gemini conversation error:', error);
-      throw new Error(`Failed to continue conversation with Gemini: ${error.message}`);
+      throw new Error(`Failed to continue conversation with Gemini: ${errorMessage}`);
     }
   }
 }

@@ -1,4 +1,6 @@
 // Chat feature types
+import type { LLMMessage, LLMConfig } from '../../../lib/llm/types'
+
 export interface ChatState {
   messages: LLMMessage[];
   isLoading: boolean;
