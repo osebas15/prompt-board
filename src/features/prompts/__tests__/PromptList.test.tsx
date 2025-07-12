@@ -14,6 +14,13 @@ import type { Prompt } from '../utils/validation';
 // Mock the prompt service
 vi.mock('../services/PromptService');
 
+// Mock window.confirm
+const mockConfirm = vi.fn();
+Object.defineProperty(window, 'confirm', {
+  value: mockConfirm,
+  writable: true,
+});
+
 // Mock prompts data with complete interface
 const mockPrompts: Prompt[] = [
   {
@@ -120,8 +127,8 @@ describe('PromptList Component', () => {
         // Check first prompt details
         expect(screen.getByText('Test Prompt 1')).toBeInTheDocument();
         expect(screen.getAllByText('Testing')).toHaveLength(2); // One in dropdown, one in category display
-        expect(screen.getByText('test')).toBeInTheDocument();
-        expect(screen.getByText('example')).toBeInTheDocument();
+        expect(screen.getAllByText('test')).toHaveLength(2); // Tag in card + tag in dropdown
+        expect(screen.getAllByText('example')).toHaveLength(2); // Tag in card + tag in dropdown
         expect(screen.getByText('5 uses')).toBeInTheDocument();
       });
     });
@@ -207,11 +214,22 @@ describe('PromptList Component', () => {
       const user = userEvent.setup();
       render(<PromptList />, { wrapper: createWrapper() });
       
+      await waitFor(() => {
+        expect(screen.getByText('Test Prompt 1')).toBeInTheDocument();
+      });
+      
       const tagFilter = screen.getByTestId('tag-filter');
       await user.click(tagFilter);
       
-      const testTag = screen.getByText('test');
-      await user.click(testTag);
+      // Wait for dropdown to appear and find the test tag
+      await waitFor(() => {
+        const dropdown = tagFilter.nextElementSibling;
+        expect(dropdown).not.toHaveClass('hidden');
+      });
+      
+      // Click the "test" tag checkbox in the dropdown
+      const testTagCheckbox = screen.getByRole('checkbox', { name: /test/i });
+      await user.click(testTagCheckbox);
       
       await waitFor(() => {
         expect(mockPromptService.listPrompts).toHaveBeenCalledWith(
@@ -251,7 +269,7 @@ describe('PromptList Component', () => {
       render(<PromptList />, { wrapper: createWrapper() });
       
       const sortSelect = screen.getByTestId('sort-select');
-      await user.selectOptions(sortSelect, 'created_at');
+      await user.selectOptions(sortSelect, 'created_at-desc');
       
       await waitFor(() => {
         expect(mockPromptService.listPrompts).toHaveBeenCalledWith(
@@ -333,6 +351,7 @@ describe('PromptList Component', () => {
     it('should perform bulk delete', async () => {
       const user = userEvent.setup();
       mockPromptService.deletePrompt = vi.fn().mockResolvedValue(undefined);
+      mockConfirm.mockReturnValue(true); // User confirms the delete
       
       render(<PromptList enableBulkActions={true} />, { wrapper: createWrapper() });
       

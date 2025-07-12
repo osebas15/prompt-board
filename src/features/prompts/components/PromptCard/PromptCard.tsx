@@ -48,6 +48,13 @@ export const PromptCard: React.FC<PromptCardProps> = ({
     onSelect?.(e.target.checked);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
+  };
+
   return (
     <div
       className={`
@@ -57,6 +64,7 @@ export const PromptCard: React.FC<PromptCardProps> = ({
         ${variant === 'list' ? 'flex items-center space-x-4' : ''}
       `}
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
       data-testid={`prompt-card-${prompt.id}`}
       tabIndex={0}
     >

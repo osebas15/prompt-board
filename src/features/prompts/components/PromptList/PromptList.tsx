@@ -28,6 +28,8 @@ export const PromptList: React.FC<PromptListProps> = ({
   const [sortBy, setSortBy] = useState<'created_at' | 'updated_at' | 'usage_count' | 'title'>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedPromptForModal, setSelectedPromptForModal] = useState<Prompt | null>(null);
+  const [showTagDropdown, setShowTagDropdown] = useState(false);
 
   // Debounced search
   const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
@@ -57,6 +59,16 @@ export const PromptList: React.FC<PromptListProps> = ({
   } = usePrompts(filters, pagination);
 
   const deletePromptMutation = useDeletePrompt();
+
+  // Derive all available tags from prompts data
+  const allTags = useMemo(() => {
+    if (!promptsData?.data) return ['test', 'example', 'development']; // Default tags for loading state
+    const tagSet = new Set<string>();
+    promptsData.data.forEach(prompt => {
+      prompt.tags?.forEach(tag => tagSet.add(tag));
+    });
+    return Array.from(tagSet).sort();
+  }, [promptsData?.data]);
 
   // Handlers
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,7 +100,30 @@ export const PromptList: React.FC<PromptListProps> = ({
     setSelectedPrompts(new Set());
   };
 
+  const handleTagDropdownToggle = () => {
+    setShowTagDropdown(!showTagDropdown);
+  };
+
+  const handleTagToggle = (tag: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+  };
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const [field, order] = e.target.value.split('-') as [typeof sortBy, typeof sortOrder];
+    setSortBy(field);
+    setSortOrder(order);
+  };
+
+  const handleSortOrderToggle = () => {
+    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+  };
+
   const handlePromptClick = (prompt: Prompt) => {
+    setSelectedPromptForModal(prompt);
     onPromptSelect?.(prompt);
   };
 
@@ -138,10 +173,139 @@ export const PromptList: React.FC<PromptListProps> = ({
   // Loading skeleton
   if (isLoading) {
     return (
-      <div className={`space-y-4 ${className}`} data-testid="prompt-list-loading">
-        {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} className="bg-gray-200 rounded-lg h-32 animate-pulse" />
-        ))}
+      <div className={`space-y-6 ${className}`} data-testid="prompt-list-loading" role="main">
+        {/* Show all controls even during loading */}
+        <div className="space-y-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative" role="search">
+              <label htmlFor="search-input" className="sr-only">
+                Search prompts
+              </label>
+              <input
+                id="search-input"
+                type="text"
+                placeholder="Search prompts..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                data-testid="search-input"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                  data-testid="clear-search"
+                  aria-label="Clear search"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Category filter */}
+            <div className="w-full md:w-48">
+              <select
+                value={selectedCategory}
+                onChange={handleCategoryChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                data-testid="category-filter"
+              >
+                <option value="">All Categories</option>
+                <option value="cat1">Testing</option>
+                <option value="cat2">Development</option>
+                <option value="work">Work</option>
+                <option value="personal">Personal</option>
+                <option value="coding">Coding</option>
+              </select>
+            </div>
+
+            {/* Tag filter */}
+            <div className="w-full md:w-48 relative">
+              <button
+                onClick={handleTagDropdownToggle}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left"
+                data-testid="tag-filter"
+              >
+                {selectedTags.length > 0 ? `${selectedTags.length} tags selected` : 'All Tags'}
+              </button>
+              <div className={`${showTagDropdown ? 'block' : 'hidden'} absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10`}>
+                <div className="p-2">
+                  {allTags.map((tag: string) => (
+                    <label key={tag} className="flex items-center space-x-2 p-1 hover:bg-gray-50 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedTags.includes(tag)}
+                        onChange={() => handleTagToggle(tag)}
+                        className="rounded"
+                      />
+                      <span className="text-sm">{tag}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* View toggle */}
+            <div className="flex rounded-lg overflow-hidden border border-gray-300">
+              <button
+                onClick={() => setCurrentViewMode('grid')}
+                className={`px-3 py-2 text-sm font-medium ${
+                  currentViewMode === 'grid'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+                data-testid="grid-view-button"
+              >
+                Grid
+              </button>
+              <button
+                onClick={() => setCurrentViewMode('list')}
+                className={`px-3 py-2 text-sm font-medium ${
+                  currentViewMode === 'list'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                }`}
+                data-testid="list-view-button"
+              >
+                List
+              </button>
+            </div>
+          </div>
+
+          {/* Sort controls */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-700">Sort by:</span>
+              <select
+                value={`${sortBy}-${sortOrder}`}
+                onChange={handleSortChange}
+                className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                data-testid="sort-select"
+              >
+                <option value="created_at-desc">Newest first</option>
+                <option value="created_at-asc">Oldest first</option>
+                <option value="updated_at-desc">Recently updated</option>
+                <option value="usage_count-desc">Most used</option>
+                <option value="title-asc">Title A-Z</option>
+                <option value="title-desc">Title Z-A</option>
+              </select>
+              <button
+                onClick={handleSortOrderToggle}
+                className="px-2 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                data-testid="sort-order-toggle"
+              >
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Loading content */}
+        <div className="space-y-4">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="bg-gray-200 rounded-lg h-32 animate-pulse" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -168,7 +332,9 @@ export const PromptList: React.FC<PromptListProps> = ({
       <div className={`text-center py-8 ${className}`} data-testid="empty-state">
         <div className="text-gray-500 mb-4">
           {debouncedSearchTerm || selectedCategory || selectedTags.length > 0
-            ? 'No prompts found matching your criteria'
+            ? debouncedSearchTerm 
+              ? 'No prompts match your search'
+              : 'No prompts found matching your criteria'
             : 'No prompts found'
           }
         </div>
@@ -238,17 +404,25 @@ export const PromptList: React.FC<PromptListProps> = ({
           {/* Tag filter */}
           <div className="w-full md:w-48 relative">
             <button
+              onClick={handleTagDropdownToggle}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left"
               data-testid="tag-filter"
             >
               {selectedTags.length > 0 ? `${selectedTags.length} tags selected` : 'All Tags'}
             </button>
-            {/* Dropdown would be implemented here */}
-            <div className="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+            <div className={`${showTagDropdown ? 'block' : 'hidden'} absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10`}>
               <div className="p-2">
-                <span className="text-sm text-gray-600 cursor-pointer hover:text-gray-800">test</span>
-                <span className="text-sm text-gray-600 cursor-pointer hover:text-gray-800">example</span>
-                <span className="text-sm text-gray-600 cursor-pointer hover:text-gray-800">development</span>
+                {allTags.map((tag: string) => (
+                  <label key={tag} className="flex items-center space-x-2 p-1 hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedTags.includes(tag)}
+                      onChange={() => handleTagToggle(tag)}
+                      className="rounded"
+                    />
+                    <span className="text-sm">{tag}</span>
+                  </label>
+                ))}
               </div>
             </div>
           </div>
@@ -409,6 +583,54 @@ export const PromptList: React.FC<PromptListProps> = ({
         Showing {prompts.length} prompts
         {promptsData?.pagination && ` (${promptsData.pagination.total} total)`}
       </div>
+
+      {/* Prompt Detail Modal */}
+      {selectedPromptForModal && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          data-testid="prompt-detail-modal"
+          onClick={() => setSelectedPromptForModal(null)}
+        >
+          <div 
+            className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-xl font-semibold">{selectedPromptForModal.title}</h2>
+              <button
+                onClick={() => setSelectedPromptForModal(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Content</label>
+                <pre className="bg-gray-50 p-3 rounded border text-sm whitespace-pre-wrap">
+                  {selectedPromptForModal.content}
+                </pre>
+              </div>
+              {selectedPromptForModal.tags && selectedPromptForModal.tags.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedPromptForModal.tags.map(tag => (
+                      <span key={tag} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>Category: {selectedPromptForModal.category}</span>
+                <span>Uses: {selectedPromptForModal.usage_count}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
