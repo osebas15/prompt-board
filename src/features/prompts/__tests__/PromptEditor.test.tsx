@@ -277,11 +277,10 @@ describe('PromptEditor Component', () => {
       const contentInput = screen.getByTestId('content-input') as HTMLTextAreaElement;
       const longContent = 'x'.repeat(10001);
       
-      // Use direct value setting for large content to avoid timeout
+      // Use paste method for large content to avoid timeout
       await user.clear(contentInput);
       await user.click(contentInput);
-      contentInput.value = longContent;
-      contentInput.dispatchEvent(new Event('input', { bubbles: true }));
+      await user.paste(longContent);
       
       expect(screen.getByTestId('character-count')).toHaveTextContent('10001 / 10000 characters');
     });
@@ -321,7 +320,9 @@ describe('PromptEditor Component', () => {
       render(<PromptEditor />, { wrapper: createWrapper() });
       
       const contentInput = screen.getByTestId('content-input');
-      await user.type(contentInput, 'Content with {{newVariable}}');
+      // Use paste to avoid issues with curly braces being interpreted as key combinations
+      await user.click(contentInput);
+      await user.paste('Content with {{newVariable}}');
       
       // In a real implementation, this would update automatically
       expect(contentInput).toHaveValue('Content with {{newVariable}}');

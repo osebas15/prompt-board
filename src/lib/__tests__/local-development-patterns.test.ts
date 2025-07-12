@@ -142,17 +142,18 @@ describe('Local Development Integration Patterns', () => {
 
     it('should provide mock data for development', () => {
       // Test mock data utilities for development
+      const fixedDate = '2025-07-12T00:00:00.000Z'
       const createMockUser = () => ({
         id: 'mock-user-id',
         email: 'test@example.com',
         aud: 'authenticated',
-        created_at: new Date().toISOString(),
+        created_at: fixedDate,
         app_metadata: {},
         user_metadata: {},
       })
       
-      const createMockSession = () => ({
-        user: createMockUser(),
+      const createMockSession = (user = createMockUser()) => ({
+        user,
         access_token: 'mock-access-token',
         refresh_token: 'mock-refresh-token',
         expires_at: Date.now() + 3600000,
@@ -161,7 +162,7 @@ describe('Local Development Integration Patterns', () => {
       })
       
       const mockUser = createMockUser()
-      const mockSession = createMockSession()
+      const mockSession = createMockSession(mockUser)
       
       expect(mockUser.id).toBeDefined()
       expect(mockUser.email).toBe('test@example.com')
