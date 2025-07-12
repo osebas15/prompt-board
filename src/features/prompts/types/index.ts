@@ -54,6 +54,13 @@ export interface PaginationParams {
   limit: number;
 }
 
+export interface Pagination {
+  page: number;
+  limit: number;
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
+}
+
 export interface PaginatedResponse<T> {
   data: T[];
   pagination: {
