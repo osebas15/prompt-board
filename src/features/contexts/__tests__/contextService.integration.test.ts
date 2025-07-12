@@ -1,23 +1,52 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import { ContextService } from '../services/ContextService';
 import { supabase } from '@/lib/supabase';
+import { createTestUser, deleteTestUser } from '@/test/supabase-setup';
 import type { Context, CreateContextData } from '../types';
 
 // Integration tests use real Supabase instance
 describe('ContextService Integration', () => {
   let contextService: ContextService;
   let testUserId: string;
+  let testUser: any;
   let createdContexts: string[] = [];
+
+  beforeAll(async () => {
+    // Create and authenticate a test user
+    const testEmail = `test-user-${Date.now()}@example.com`;
+    const testPassword = 'test-password-123';
+    
+    // Create test user with admin client
+    testUser = await createTestUser(testEmail, testPassword);
+    testUserId = testUser.id;
+    
+    // Sign in with the test user
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: testEmail,
+      password: testPassword
+    });
+    
+    if (signInError) {
+      throw new Error(`Failed to sign in test user: ${signInError.message}`);
+    }
+  });
+
+  afterAll(async () => {
+    // Sign out and clean up test user
+    await supabase.auth.signOut();
+    if (testUser) {
+      await deleteTestUser(testUser.id);
+    }
+  });
 
   beforeEach(async () => {
     contextService = new ContextService();
     
-    // Get current user (should be authenticated in test setup)
+    // Verify we're still authenticated
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('No authenticated user found for integration tests');
+    if (!user || user.id !== testUserId) {
+      throw new Error('Test user authentication lost');
     }
-    testUserId = user.id;
   });
 
   afterEach(async () => {
@@ -54,7 +83,7 @@ describe('ContextService Integration', () => {
 
       // Read context
       const contexts = await contextService.getContexts();
-      const foundContext = contexts.find(c => c.id === createdContext.id);
+      const foundContext = contexts.find((c: Context) => c.id === createdContext.id);
       expect(foundContext).toBeDefined();
 
       // Update context
