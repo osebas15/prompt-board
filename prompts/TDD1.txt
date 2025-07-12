@@ -4,7 +4,7 @@ some of the previous solutions and installed packages are no longer optimal or b
 for each section of the sprint
 1. create the unit tests and integration tests, if its integrating with supabase then use our local defualt configuration with our local supabase instance, for other integrations mock the API response, don't call billed endpoint
 2. check if code exists in the project to pass these test
-3. formulate a plan to implement code to pass these test
+3. formulate a plan to implement code to pass these test, if a supabase migration needs to be created or applied do so locally
 4. verify online that these plans are best practice and up to date, and update your plans accordingly
 5. break down the plan into induvidual files inside a CurrentPlans folder
 5. implement these plans
