@@ -1,5 +1,6 @@
 import { supabase } from '../../../lib/supabase';
 import type { Workflow, WorkflowExecution, WorkflowTemplate } from '../types';
+import { v4 as uuidv4 } from 'uuid';
 
 export class WorkflowStorage {
   // Workflow CRUD operations
@@ -278,9 +279,9 @@ export class WorkflowStorage {
     variables: Record<string, any> = {}
   ): Promise<Workflow> {
     // Generate unique IDs for steps
-    const stepsWithIds = template.steps.map((step, index) => ({
+    const stepsWithIds = template.steps.map((step) => ({
       ...step,
-      id: `step-${Date.now()}-${index}`,
+      id: `step-${uuidv4()}`,
       config: {
         ...step.config,
         // If step has a variable placeholder, replace with actual value
@@ -291,7 +292,7 @@ export class WorkflowStorage {
     }));
 
     const workflow: Workflow = {
-      id: `workflow-${Date.now()}`,
+      id: uuidv4(),
       user_id: userId,
       name,
       description: template.description,
