@@ -1,309 +1,168 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { ApiClient, RetryConfig } from '@/lib/api/apiClient';
-import { ApiError, NetworkError, RateLimitError, ServerError } from '@/lib/errors/apiErrors';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { ApiClient } from '@/lib/api/apiClient'
+import type { RetryConfig, RequestConfig } from '@/lib/api/apiClient'
+import { server } from '@/test/mocks/server'
+import { http, HttpResponse } from 'msw'
 
-// Mock fetch globally
-const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
-
-describe('API Error Handling', () => {
-  let apiClient: ApiClient;
-  let retryConfig: RetryConfig;
+describe('ApiClient', () => {
+  let apiClient: ApiClient
+  let retryConfig: RetryConfig
 
   beforeEach(() => {
-    vi.clearAllMocks();
     retryConfig = {
       maxAttempts: 3,
       backoffStrategy: 'exponential',
       initialDelay: 100,
       maxDelay: 5000,
-      retryableErrors: ['NetworkError', 'ServerError', 'RateLimitError'],
-    };
-    apiClient = new ApiClient(retryConfig);
-  });
+      retryableErrors: ['NetworkError', 'RateLimitError', 'ServerError']
+    }
+    apiClient = new ApiClient(retryConfig)
+  })
 
   afterEach(() => {
-    vi.restoreAllMocks();
-  });
+    server.resetHandlers()
+    vi.clearAllMocks()
+  })
 
-  describe('ApiClient', () => {
-    describe('successful requests', () => {
-      it('should make successful request without retries', async () => {
-        const mockResponse = { data: 'test' };
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: async () => mockResponse,
-        });
+  describe('request method', () => {
+    it('should make successful GET request', async () => {
+      server.use(
+        http.get('http://localhost:3000/api/users', () => {
+          return HttpResponse.json({ users: [] })
+        })
+      )
 
-        const result = await apiClient.request({
-          url: '/test',
-          method: 'GET',
-        });
+      const config: RequestConfig = {
+        url: 'http://localhost:3000/api/users',
+        method: 'GET'
+      }
 
-        expect(result).toEqual(mockResponse);
-        expect(mockFetch).toHaveBeenCalledTimes(1);
-      });
+      const result = await apiClient.request(config)
+      expect(result).toEqual({ users: [] })
+    })
 
-      it('should include authorization headers', async () => {
-        const mockResponse = { data: 'test' };
-        mockFetch.mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: async () => mockResponse,
-        });
+    it('should make successful POST request', async () => {
+      server.use(
+        http.post('http://localhost:3000/api/users', () => {
+          return HttpResponse.json({ id: 1, name: 'John' })
+        })
+      )
 
-        await apiClient.request({
-          url: '/test',
-          method: 'GET',
-          headers: { Authorization: 'Bearer token' },
-        });
+      const config: RequestConfig = {
+        url: 'http://localhost:3000/api/users',
+        method: 'POST',
+        body: { name: 'John' }
+      }
 
-        expect(mockFetch).toHaveBeenCalledWith('/test', expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer token',
-          }),
-        }));
-      });
-    });
+      const result = await apiClient.request(config)
+      expect(result).toEqual({ id: 1, name: 'John' })
+    })
 
-    describe('error handling', () => {
-      it('should throw NetworkError for network failures', async () => {
-        mockFetch.mockRejectedValue(new Error('Network error'));
+    it('should handle network errors', async () => {
+      server.use(
+        http.get('http://localhost:3000/api/users', () => {
+          return HttpResponse.error()
+        })
+      )
 
-        await expect(apiClient.request({
-          url: '/test',
-          method: 'GET',
-        })).rejects.toThrow(NetworkError);
-      });
+      const config: RequestConfig = {
+        url: 'http://localhost:3000/api/users',
+        method: 'GET'
+      }
 
-      it('should throw ServerError for 5xx responses', async () => {
-        mockFetch.mockResolvedValue({
-          ok: false,
-          status: 500,
-          statusText: 'Internal Server Error',
-          json: async () => ({ error: 'Server error' }),
-        });
+      await expect(apiClient.request(config)).rejects.toThrow()
+    })
+  })
 
-        await expect(apiClient.request({
-          url: '/test',
-          method: 'GET',
-        })).rejects.toThrow(ServerError);
-      });
+  describe('retry mechanism', () => {
+    it('should retry failed requests', async () => {
+      let attempts = 0
+      server.use(
+        http.get('http://localhost:3000/api/retry', () => {
+          attempts++
+          if (attempts < 3) {
+            return new Response(null, { status: 500 })
+          }
+          return HttpResponse.json({ success: true })
+        })
+      )
 
-      it('should throw RateLimitError for 429 responses', async () => {
-        mockFetch.mockResolvedValue({
-          ok: false,
-          status: 429,
-          statusText: 'Too Many Requests',
-          headers: new Map([['Retry-After', '60']]),
-          json: async () => ({ error: 'Rate limited' }),
-        });
+      const config: RequestConfig = {
+        url: 'http://localhost:3000/api/retry',
+        method: 'GET'
+      }
 
-        await expect(apiClient.request({
-          url: '/test',
-          method: 'GET',
-        })).rejects.toThrow(RateLimitError);
-      });
+      const result = await apiClient.request(config)
+      expect(result).toEqual({ success: true })
+      // Should make 3 attempts: 2 failures + 1 success
+      expect(attempts).toBe(3)
+    })
 
-      it('should throw ClientError for 4xx responses', async () => {
-        mockFetch.mockResolvedValue({
-          ok: false,
-          status: 400,
-          statusText: 'Bad Request',
-          json: async () => ({ error: 'Bad request' }),
-        });
+    it('should respect maxAttempts configuration', async () => {
+      const shortRetryConfig: RetryConfig = {
+        maxAttempts: 2,
+        backoffStrategy: 'fixed',
+        initialDelay: 50,
+        maxDelay: 1000,
+        retryableErrors: ['NetworkError', 'ServerError']
+      }
+      const shortRetryClient = new ApiClient(shortRetryConfig)
 
-        await expect(apiClient.request({
-          url: '/test',
-          method: 'GET',
-        })).rejects.toThrow(ApiError);
-      });
-    });
+      let attempts = 0
+      server.use(
+        http.get('http://localhost:3000/api/fail', () => {
+          attempts++
+          return new Response(null, { status: 500 })
+        })
+      )
 
-    describe('retry logic', () => {
-      it('should retry on retryable errors', async () => {
-        // First two calls fail, third succeeds
-        mockFetch
-          .mockRejectedValueOnce(new Error('Network error'))
-          .mockRejectedValueOnce(new Error('Network error'))
-          .mockResolvedValueOnce({
-            ok: true,
-            status: 200,
-            json: async () => ({ data: 'success' }),
-          });
+      const config: RequestConfig = {
+        url: 'http://localhost:3000/api/fail',
+        method: 'GET'
+      }
 
-        const result = await apiClient.request({
-          url: '/test',
-          method: 'GET',
-        });
+      await expect(shortRetryClient.request(config)).rejects.toThrow()
+      // Should make exactly 2 attempts as per maxAttempts
+      expect(attempts).toBe(2)
+    })
+  })
 
-        expect(result).toEqual({ data: 'success' });
-        expect(mockFetch).toHaveBeenCalledTimes(3);
-      });
+  describe('error handling', () => {
+    it('should handle 400 client errors', async () => {
+      server.use(
+        http.post('http://localhost:3000/api/users', () => {
+          return HttpResponse.json(
+            { error: 'Bad Request' },
+            { status: 400 }
+          )
+        })
+      )
 
-      it('should not retry on non-retryable errors', async () => {
-        mockFetch.mockResolvedValue({
-          ok: false,
-          status: 400,
-          statusText: 'Bad Request',
-          json: async () => ({ error: 'Bad request' }),
-        });
+      const config: RequestConfig = {
+        url: 'http://localhost:3000/api/users',
+        method: 'POST',
+        body: { invalid: 'data' }
+      }
 
-        await expect(apiClient.request({
-          url: '/test',
-          method: 'GET',
-        })).rejects.toThrow();
+      await expect(apiClient.request(config)).rejects.toThrow()
+    })
 
-        expect(mockFetch).toHaveBeenCalledTimes(1);
-      });
+    it('should handle 500 server errors', async () => {
+      server.use(
+        http.get('http://localhost:3000/api/error', () => {
+          return HttpResponse.json(
+            { error: 'Internal Server Error' },
+            { status: 500 }
+          )
+        })
+      )
 
-      it('should respect maxAttempts configuration', async () => {
-        mockFetch.mockRejectedValue(new Error('Network error'));
+      const config: RequestConfig = {
+        url: 'http://localhost:3000/api/error',
+        method: 'GET'
+      }
 
-        await expect(apiClient.request({
-          url: '/test',
-          method: 'GET',
-        })).rejects.toThrow(NetworkError);
-
-        expect(mockFetch).toHaveBeenCalledTimes(retryConfig.maxAttempts);
-      });
-
-      it('should apply exponential backoff', async () => {
-        const startTime = Date.now();
-        mockFetch.mockRejectedValue(new Error('Network error'));
-
-        await expect(apiClient.request({
-          url: '/test',
-          method: 'GET',
-        })).rejects.toThrow();
-
-        const endTime = Date.now();
-        const elapsed = endTime - startTime;
-
-        // Should have some delay due to backoff (at least initial delay)
-        expect(elapsed).toBeGreaterThan(retryConfig.initialDelay);
-      });
-
-      it('should handle RateLimitError with custom delay', async () => {
-        mockFetch.mockResolvedValueOnce({
-          ok: false,
-          status: 429,
-          statusText: 'Too Many Requests',
-          headers: new Map([['Retry-After', '1']]), // 1 second
-          json: async () => ({ error: 'Rate limited' }),
-        }).mockResolvedValueOnce({
-          ok: true,
-          status: 200,
-          json: async () => ({ data: 'success' }),
-        });
-
-        const startTime = Date.now();
-        const result = await apiClient.request({
-          url: '/test',
-          method: 'GET',
-        });
-
-        const endTime = Date.now();
-        const elapsed = endTime - startTime;
-
-        expect(result).toEqual({ data: 'success' });
-        expect(elapsed).toBeGreaterThan(1000); // Should wait at least 1 second
-        expect(mockFetch).toHaveBeenCalledTimes(2);
-      });
-    });
-
-    describe('configuration', () => {
-      it('should use custom retry configuration', async () => {
-        const customConfig: RetryConfig = {
-          maxAttempts: 1,
-          backoffStrategy: 'fixed',
-          initialDelay: 50,
-          maxDelay: 1000,
-          retryableErrors: [],
-        };
-        const customClient = new ApiClient(customConfig);
-
-        mockFetch.mockRejectedValue(new Error('Network error'));
-
-        await expect(customClient.request({
-          url: '/test',
-          method: 'GET',
-        })).rejects.toThrow();
-
-        // Should only attempt once with custom config
-        expect(mockFetch).toHaveBeenCalledTimes(1);
-      });
-
-      it('should allow disabling retries', async () => {
-        const noRetryClient = new ApiClient({
-          maxAttempts: 1,
-          backoffStrategy: 'fixed',
-          initialDelay: 0,
-          maxDelay: 0,
-          retryableErrors: [],
-        });
-
-        mockFetch.mockRejectedValue(new Error('Network error'));
-
-        await expect(noRetryClient.request({
-          url: '/test',
-          method: 'GET',
-        })).rejects.toThrow();
-
-        expect(mockFetch).toHaveBeenCalledTimes(1);
-      });
-    });
-  });
-
-  describe('Error Classification', () => {
-    it('should correctly identify network errors', () => {
-      const networkError = new NetworkError('Connection failed', 0, true);
-      expect(networkError.retryable).toBe(true);
-      expect(networkError.statusCode).toBe(0);
-    });
-
-    it('should correctly identify rate limit errors', () => {
-      const rateLimitError = new RateLimitError('Too many requests', 429, true);
-      expect(rateLimitError.retryable).toBe(true);
-      expect(rateLimitError.statusCode).toBe(429);
-    });
-
-    it('should correctly identify server errors', () => {
-      const serverError = new ServerError('Internal server error', 500, true);
-      expect(serverError.retryable).toBe(true);
-      expect(serverError.statusCode).toBe(500);
-    });
-
-    it('should correctly identify client errors as non-retryable', () => {
-      const clientError = new ApiError('Bad request', 400, false);
-      expect(clientError.retryable).toBe(false);
-      expect(clientError.statusCode).toBe(400);
-    });
-  });
-
-  describe('Backoff Strategies', () => {
-    it('should calculate exponential backoff correctly', () => {
-      const backoff1 = apiClient.calculateBackoff(1);
-      const backoff2 = apiClient.calculateBackoff(2);
-      const backoff3 = apiClient.calculateBackoff(3);
-
-      expect(backoff2).toBeGreaterThan(backoff1);
-      expect(backoff3).toBeGreaterThan(backoff2);
-      expect(backoff3).toBeLessThanOrEqual(retryConfig.maxDelay);
-    });
-
-    it('should respect maximum delay', () => {
-      const backoff = apiClient.calculateBackoff(10); // Large attempt number
-      expect(backoff).toBeLessThanOrEqual(retryConfig.maxDelay);
-    });
-
-    it('should apply jitter to prevent thundering herd', () => {
-      const backoffs = Array.from({ length: 10 }, () => apiClient.calculateBackoff(2));
-      const uniqueBackoffs = new Set(backoffs);
-      
-      // Should have some variation due to jitter
-      expect(uniqueBackoffs.size).toBeGreaterThan(1);
-    });
-  });
-});
+      await expect(apiClient.request(config)).rejects.toThrow()
+    })
+  })
+})

@@ -1,4 +1,5 @@
 import Fuse from 'fuse.js';
+import { logger } from '../../../lib/debug/logger';
 import type { 
   GlobalSearchItem, 
   SearchResult, 
@@ -98,7 +99,7 @@ export class SearchService {
         })) : undefined,
       }));
     } catch (error) {
-      console.error('Search service error:', error);
+      logger.error('Search service error:', error);
       return [];
     }
   }

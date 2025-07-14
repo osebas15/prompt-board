@@ -30,10 +30,41 @@ Object.defineProperty(document.body, 'appendChild', {
 });
 
 describe('Toast Utility', () => {
+  let createElementSpy: any;
+  let getElementByIdSpy: any;
+  let appendChildSpy: any;
+
   beforeEach(() => {
-    vi.clearAllMocks();
-    // Reset DOM
-    (document.getElementById as any).mockReturnValue(null);
+    // Setup fresh spies each time
+    createElementSpy = vi.fn().mockImplementation((tagName: string) => ({
+      tagName: tagName.toUpperCase(),
+      className: '',
+      innerHTML: '',
+      id: '',
+      style: {},
+      appendChild: vi.fn(),
+      remove: vi.fn(),
+      parentNode: null,
+    }));
+    
+    getElementByIdSpy = vi.fn().mockReturnValue(null);
+    appendChildSpy = vi.fn();
+
+    // Override the document methods
+    Object.defineProperty(document, 'createElement', {
+      value: createElementSpy,
+      writable: true,
+    });
+    
+    Object.defineProperty(document, 'getElementById', {
+      value: getElementByIdSpy,
+      writable: true,
+    });
+    
+    Object.defineProperty(document.body, 'appendChild', {
+      value: appendChildSpy,
+      writable: true,
+    });
   });
 
   afterEach(() => {
@@ -42,9 +73,6 @@ describe('Toast Utility', () => {
 
   describe('showToast', () => {
     it('should create toast container if it does not exist', () => {
-      const createElementSpy = vi.spyOn(document, 'createElement');
-      const appendChildSpy = vi.spyOn(document.body, 'appendChild');
-      
       showToast('Test message');
       
       // Should create container
@@ -57,11 +85,12 @@ describe('Toast Utility', () => {
         appendChild: vi.fn(),
         id: 'toast-container',
       };
-      (document.getElementById as any).mockReturnValue(mockContainer);
+      getElementByIdSpy.mockReturnValue(mockContainer);
       
       showToast('Test message');
       
-      expect(document.getElementById).toHaveBeenCalledWith('toast-container');
+      expect(getElementByIdSpy).toHaveBeenCalledWith('toast-container');
+      expect(mockContainer.appendChild).toHaveBeenCalled();
     });
 
     it('should create toast with default options', () => {

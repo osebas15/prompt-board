@@ -9,6 +9,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: true,
+    // Note: env test needs to control environment variables itself
+    // Other tests rely on these defaults
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

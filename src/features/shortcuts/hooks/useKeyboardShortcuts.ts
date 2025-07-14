@@ -34,35 +34,35 @@ export const globalShortcuts: KeyboardShortcut[] = [
     description: 'Open command palette',
     action: () => {
       // Will be implemented with command palette component
-      console.log('Command palette');
+      // Command palette action
     },
   },
   {
     key: 'ctrl+n,cmd+n',
     description: 'Create new prompt',
     action: () => {
-      console.log('New prompt');
+      // New prompt action
     },
   },
   {
     key: 'ctrl+shift+n,cmd+shift+n',
     description: 'Create new context',
     action: () => {
-      console.log('New context');
+      // New context action
     },
   },
   {
     key: 'ctrl+/,cmd+/',
     description: 'Show keyboard shortcuts',
     action: () => {
-      console.log('Show shortcuts');
+      // Show shortcuts action
     },
   },
   {
     key: 'ctrl+shift+p,cmd+shift+p',
     description: 'Open prompt library',
     action: () => {
-      console.log('Prompt library');
+      // Prompt library action
     },
   },
 ];

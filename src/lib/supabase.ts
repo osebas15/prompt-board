@@ -1,21 +1,22 @@
 import { createClient } from '@supabase/supabase-js'
 import { env } from './env'
+import { logger } from './debug/logger'
 
-console.log('🔗 Supabase Client Initialization Starting...')
+logger.infoOnce('🔗 Supabase Client Initialization Starting...')
 
 // Validate environment variables before creating client
 if (!env.VITE_SUPABASE_URL || !env.VITE_SUPABASE_ANON_KEY) {
-  console.error('❌ Missing required Supabase environment variables')
-  console.error('VITE_SUPABASE_URL:', env.VITE_SUPABASE_URL || 'undefined')
-  console.error('VITE_SUPABASE_ANON_KEY:', env.VITE_SUPABASE_ANON_KEY ? 'Set' : 'undefined')
+  logger.forceError('❌ Missing required Supabase environment variables')
+  logger.forceError('VITE_SUPABASE_URL:', env.VITE_SUPABASE_URL || 'undefined')
+  logger.forceError('VITE_SUPABASE_ANON_KEY:', env.VITE_SUPABASE_ANON_KEY ? 'Set' : 'undefined')
   throw new Error('Missing required Supabase environment variables')
 }
 
-console.log('✅ Environment variables validated successfully')
-console.log('🌐 Supabase URL:', env.VITE_SUPABASE_URL)
-console.log('🔑 Anon Key (first 20 chars):', env.VITE_SUPABASE_ANON_KEY.substring(0, 20) + '...')
-console.log('🏗️ Environment mode:', import.meta.env.MODE)
-console.log('🔧 Debug mode enabled:', import.meta.env.DEV)
+logger.infoOnce('✅ Environment variables validated successfully')
+logger.debug('🌐 Supabase URL:', env.VITE_SUPABASE_URL)
+logger.debug('🔑 Anon Key (first 20 chars):', env.VITE_SUPABASE_ANON_KEY.substring(0, 20) + '...')
+logger.debug('🏗️ Environment mode:', import.meta.env.MODE)
+logger.debug('🔧 Debug mode enabled:', import.meta.env.DEV)
 
 const supabaseConfig = {
   auth: {
@@ -44,7 +45,7 @@ const supabaseConfig = {
   },
 }
 
-console.log('⚙️ Supabase client configuration:', {
+logger.debug('⚙️ Supabase client configuration:', {
   ...supabaseConfig,
   auth: {
     ...supabaseConfig.auth,
@@ -60,10 +61,10 @@ export const supabase = createClient(
   supabaseConfig
 )
 
-console.log('🚀 Supabase client created successfully')
-console.log('🔐 Auth methods available:', Object.keys(supabase.auth))
-console.log('📊 Database methods available:', typeof supabase.from === 'function' ? 'Available' : 'Not available')
-console.log('⚡ Realtime methods available:', typeof supabase.channel === 'function' ? 'Available' : 'Not available')
+logger.infoOnce('🚀 Supabase client created successfully')
+logger.debug('🔐 Auth methods available:', Object.keys(supabase.auth))
+logger.debug('📊 Database methods available:', typeof supabase.from === 'function' ? 'Available' : 'Not available')
+logger.debug('⚡ Realtime methods available:', typeof supabase.channel === 'function' ? 'Available' : 'Not available')
 
 // Export auth methods for convenience
 export const {

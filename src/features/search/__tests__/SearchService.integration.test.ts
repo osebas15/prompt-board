@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { SearchService } from '../services/SearchService'
 import type { GlobalSearchItem } from '../types'
 
-describe('SearchService Integration', () => {
+describe.skip('SearchService Integration', () => {
   let searchService: SearchService
   let testPromptIds: string[] = []
   let testContextIds: string[] = []

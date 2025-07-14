@@ -222,18 +222,27 @@ describe('API Error Handling (Unit)', () => {
         
         mockFetch.mockRejectedValue(new Error('Network error'));
 
+        // Create the request promise and immediately start advancing timers
         const requestPromise = apiClient.request({
           url: '/test',
           method: 'GET',
         });
 
-        // Advance through all retry attempts
-        await vi.advanceTimersByTimeAsync(500);
+        // Advance through all retry attempts - need to advance multiple times
+        // to ensure all retry delays are processed
+        for (let i = 0; i < 5; i++) {
+          await vi.advanceTimersByTimeAsync(200);
+        }
 
-        await expect(requestPromise).rejects.toThrow('Network error');
-        expect(mockFetch).toHaveBeenCalledTimes(3); // maxAttempts
+        // Make sure all microtasks are processed
+        await vi.runAllTimersAsync();
 
-        vi.useRealTimers();
+        try {
+          await expect(requestPromise).rejects.toThrow('Network error');
+          expect(mockFetch).toHaveBeenCalledTimes(3); // maxAttempts
+        } finally {
+          vi.useRealTimers();
+        }
       });
     });
 

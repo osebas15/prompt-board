@@ -1,5 +1,6 @@
 // Integration test setup file - doesn't mock Supabase
 import '@testing-library/jest-dom'
+import { logger } from '../lib/debug/logger';
 
 // Global test configuration
 import { afterEach, beforeAll } from 'vitest'
@@ -21,11 +22,11 @@ beforeAll(async () => {
   try {
     const response = await fetch(`${supabaseUrl}/health`);
     if (!response.ok) {
-      console.warn('Supabase health check failed, but continuing with tests...');
+      logger.warnOnce('Supabase health check failed, but continuing with tests...');
     }
   } catch (error) {
-    console.warn('Could not connect to Supabase health endpoint:', error);
-    console.warn('Make sure Supabase is running locally with: npm run supabase:start');
+    logger.warnOnce('Could not connect to Supabase health endpoint:', error);
+    logger.warnOnce('Make sure Supabase is running locally with: npm run supabase:start');
   }
 });
 

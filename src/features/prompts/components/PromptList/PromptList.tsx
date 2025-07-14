@@ -3,6 +3,7 @@ import { useDebounce } from 'use-debounce';
 import { PromptCard } from '../PromptCard';
 import { usePrompts, useDeletePrompt } from '../../hooks/usePrompts';
 import type { Prompt, PromptFilters, Pagination } from '../../utils/validation';
+import { logger } from '../../../../lib/debug/logger';
 
 export interface PromptListProps {
   initialFilters?: PromptFilters;
@@ -127,14 +128,14 @@ export const PromptList: React.FC<PromptListProps> = ({
     onPromptSelect?.(prompt);
   };
 
-  const handlePromptEdit = (prompt: Prompt) => {
+  const handlePromptEdit = (_prompt: Prompt) => {
     // This will be handled by parent component
-    console.log('Edit prompt:', prompt.id);
+    // Edit prompt action
   };
 
-  const handlePromptDuplicate = (prompt: Prompt) => {
+  const handlePromptDuplicate = (_prompt: Prompt) => {
     // This will be handled by parent component
-    console.log('Duplicate prompt:', prompt.id);
+    // Duplicate prompt action
   };
 
   const handlePromptDelete = async (promptId: string) => {
@@ -146,7 +147,7 @@ export const PromptList: React.FC<PromptListProps> = ({
         newSelected.delete(promptId);
         setSelectedPrompts(newSelected);
       } catch (error) {
-        console.error('Failed to delete prompt:', error);
+        logger.error('Failed to delete prompt:', error);
       }
     }
   };
@@ -163,7 +164,7 @@ export const PromptList: React.FC<PromptListProps> = ({
         );
         setSelectedPrompts(new Set());
       } catch (error) {
-        console.error('Failed to delete prompts:', error);
+        logger.error('Failed to delete prompts:', error);
       }
     }
   };
