@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Zap, Plus, Play, Pause, Clock, CheckCircle } from 'lucide-react';
 import type { Workflow } from '../types';
+import { showToast } from '@/lib/utils/toast';
 
 interface WorkflowsManagerProps {
   className?: string;
+  onCreateWorkflow?: () => void;
 }
 
-export const WorkflowsManager: React.FC<WorkflowsManagerProps> = ({ className }) => {
+export const WorkflowsManager: React.FC<WorkflowsManagerProps> = ({ 
+  className,
+  onCreateWorkflow
+}) => {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,22 +54,43 @@ export const WorkflowsManager: React.FC<WorkflowsManagerProps> = ({ className })
   }, []);
 
   const toggleWorkflow = (id: string) => {
-    setWorkflows(prev => prev.map(workflow => 
-      workflow.id === id 
-        ? { ...workflow, is_active: !workflow.is_active }
-        : workflow
-    ));
+    setWorkflows(prev => {
+      const updated = prev.map(workflow => 
+        workflow.id === id 
+          ? { ...workflow, is_active: !workflow.is_active }
+          : workflow
+      );
+      
+      const workflow = updated.find(w => w.id === id);
+      if (workflow) {
+        showToast(
+          `Workflow "${workflow.name}" ${workflow.is_active ? 'activated' : 'paused'}`,
+          { type: workflow.is_active ? 'success' : 'warning' }
+        );
+      }
+      
+      return updated;
+    });
   };
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className={`space-y-4 ${className}`} data-testid="workflows-manager">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <Zap className="w-5 h-5 text-purple-600" />
           <h2 className="text-lg font-semibold text-gray-900">Automation Workflows</h2>
         </div>
-        <button className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500">
+        <button 
+          onClick={() => {
+            if (onCreateWorkflow) {
+              onCreateWorkflow();
+            } else {
+              showToast('Create New Workflow feature coming soon! This will open the workflow builder interface.', { type: 'info' });
+            }
+          }}
+          className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        >
           <Plus className="w-4 h-4 mr-1" />
           New Workflow
         </button>
@@ -83,7 +109,16 @@ export const WorkflowsManager: React.FC<WorkflowsManagerProps> = ({ className })
               <Zap className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No workflows yet</h3>
               <p className="text-gray-600 mb-4">Create your first automation workflow to get started.</p>
-              <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700">
+              <button 
+                onClick={() => {
+                  if (onCreateWorkflow) {
+                    onCreateWorkflow();
+                  } else {
+                    showToast('Create Workflow feature coming soon! This will open the workflow builder interface.', { type: 'info' });
+                  }
+                }}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
+              >
                 <Plus className="w-4 h-4 mr-1" />
                 Create Workflow
               </button>

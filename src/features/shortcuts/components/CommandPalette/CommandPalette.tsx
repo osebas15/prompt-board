@@ -147,10 +147,54 @@ export function CommandPalette({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center pt-20">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-2xl mx-4 max-h-96 flex flex-col">
+    <div 
+      className="fixed inset-0 z-50 bg-black/50 flex items-start justify-center pt-20"
+      style={{ 
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 50,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        paddingTop: '5rem'
+      }}
+      onClick={(e) => {
+        // Close when clicking on backdrop
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div 
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-2xl mx-4 max-h-96 flex flex-col"
+        style={{
+          backgroundColor: 'white',
+          borderRadius: '0.5rem',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          width: '100%',
+          maxWidth: '42rem',
+          margin: '0 1rem',
+          maxHeight: '24rem',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
         {/* Header */}
-        <div className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-600">
+        <div 
+          className="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-600"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            padding: '1rem',
+            borderBottom: '1px solid #e5e7eb',
+            backgroundColor: 'white'
+          }}
+        >
           <Search className="w-5 h-5 text-gray-400" />
           <input
             ref={inputRef}
@@ -160,6 +204,14 @@ export function CommandPalette({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             className="flex-1 bg-transparent text-lg outline-none placeholder-gray-400 dark:text-white"
+            style={{
+              flex: 1,
+              backgroundColor: 'transparent',
+              fontSize: '1.125rem',
+              outline: 'none',
+              border: 'none',
+              color: '#111827'
+            }}
           />
           <kbd className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 rounded text-gray-600 dark:text-gray-300">
             ESC
@@ -167,9 +219,24 @@ export function CommandPalette({
         </div>
 
         {/* Commands */}
-        <div className="flex-1 overflow-y-auto">
+        <div 
+          className="flex-1 overflow-y-auto"
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            backgroundColor: 'white'
+          }}
+        >
           {flatCommands.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+            <div 
+              className="p-8 text-center text-gray-500 dark:text-gray-400"
+              style={{
+                padding: '2rem',
+                textAlign: 'center',
+                color: '#6b7280',
+                backgroundColor: 'white'
+              }}
+            >
               <CommandIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
               <p>No commands found</p>
               <p className="text-sm mt-1">Try a different search term</p>
@@ -178,7 +245,18 @@ export function CommandPalette({
             filteredGroups.map((group, groupIndex) => (
               <div key={group.category}>
                 {/* Category Header */}
-                <div className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-900">
+                <div 
+                  className="px-4 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-900"
+                  style={{
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    color: '#6b7280',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    backgroundColor: '#f9fafb'
+                  }}
+                >
                   {group.category}
                 </div>
                 
@@ -203,6 +281,17 @@ export function CommandPalette({
                           ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-blue-500'
                           : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                       } ${command.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      style={{
+                        padding: '0.75rem 1rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        backgroundColor: isSelected ? '#eff6ff' : 'white',
+                        borderLeft: isSelected ? '2px solid #3b82f6' : 'none',
+                        opacity: command.disabled ? 0.5 : 1
+                      }}
+                      onMouseEnter={() => setSelectedIndex(flatIndex)}
                       onClick={() => !command.disabled && handleCommandClick(command)}
                     >
                       <div className="flex items-center gap-3">
@@ -237,7 +326,19 @@ export function CommandPalette({
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-600 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
+        <div 
+          className="px-4 py-2 border-t border-gray-200 dark:border-gray-600 text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between"
+          style={{
+            padding: '0.5rem 1rem',
+            borderTop: '1px solid #e5e7eb',
+            fontSize: '0.75rem',
+            color: '#6b7280',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            backgroundColor: 'white'
+          }}
+        >
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1">
               <kbd className="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded">↑↓</kbd>

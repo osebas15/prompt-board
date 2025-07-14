@@ -2,12 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { Command } from 'lucide-react';
 import { CommandPalette } from './CommandPalette/CommandPalette';
 import type { Command as CommandType } from '../types/shortcuts';
+import { showToast } from '@/lib/utils/toast';
 
 interface ShortcutsManagerProps {
   className?: string;
+  onSearchActivated?: () => void;
+  onNewPrompt?: () => void;
+  onViewAnalytics?: () => void;
+  onManageWorkflows?: () => void;
 }
 
-export const ShortcutsManager: React.FC<ShortcutsManagerProps> = ({ className }) => {
+export const ShortcutsManager: React.FC<ShortcutsManagerProps> = ({ 
+  className,
+  onSearchActivated,
+  onNewPrompt,
+  onViewAnalytics,
+  onManageWorkflows
+}) => {
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [commands] = useState<CommandType[]>([
     {
@@ -18,7 +29,19 @@ export const ShortcutsManager: React.FC<ShortcutsManagerProps> = ({ className })
       category: 'search',
       icon: '🔍',
       action: () => {
-        console.log('Search prompts command executed');
+        if (onSearchActivated) {
+          onSearchActivated();
+        } else {
+          // Focus on search input if it exists
+          const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+          if (searchInput) {
+            searchInput.focus();
+            searchInput.select();
+            showToast('Search activated! Start typing to search.', { type: 'success' });
+          } else {
+            showToast('Search activated! No search input found on the page.', { type: 'warning' });
+          }
+        }
       }
     },
     {
@@ -29,7 +52,11 @@ export const ShortcutsManager: React.FC<ShortcutsManagerProps> = ({ className })
       category: 'prompts',
       icon: '📝',
       action: () => {
-        console.log('New prompt command executed');
+        if (onNewPrompt) {
+          onNewPrompt();
+        } else {
+          showToast('New Prompt feature coming soon! This will open the prompt creation form.', { type: 'info' });
+        }
       }
     },
     {
@@ -40,7 +67,19 @@ export const ShortcutsManager: React.FC<ShortcutsManagerProps> = ({ className })
       category: 'navigation',
       icon: '📊',
       action: () => {
-        console.log('Analytics command executed');
+        if (onViewAnalytics) {
+          onViewAnalytics();
+        } else {
+          // Scroll to analytics section
+          const analyticsSection = document.querySelector('[data-testid="analytics-dashboard"]') || 
+                                  document.querySelector('[class*="AnalyticsDashboard"]');
+          if (analyticsSection) {
+            analyticsSection.scrollIntoView({ behavior: 'smooth' });
+            showToast('Scrolled to Analytics Dashboard', { type: 'success' });
+          } else {
+            showToast('Analytics dashboard is already visible on this page!', { type: 'info' });
+          }
+        }
       }
     },
     {
@@ -51,7 +90,19 @@ export const ShortcutsManager: React.FC<ShortcutsManagerProps> = ({ className })
       category: 'automation',
       icon: '⚡',
       action: () => {
-        console.log('Workflows command executed');
+        if (onManageWorkflows) {
+          onManageWorkflows();
+        } else {
+          // Scroll to workflows section
+          const workflowsSection = document.querySelector('[data-testid="workflows-manager"]') ||
+                                  document.querySelector('[class*="WorkflowsManager"]');
+          if (workflowsSection) {
+            workflowsSection.scrollIntoView({ behavior: 'smooth' });
+            showToast('Scrolled to Workflows Manager', { type: 'success' });
+          } else {
+            showToast('Workflows section is available below the analytics dashboard!', { type: 'info' });
+          }
+        }
       }
     }
   ]);
@@ -64,10 +115,38 @@ export const ShortcutsManager: React.FC<ShortcutsManagerProps> = ({ className })
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Command Palette (Cmd+K)
       if (e.metaKey && e.key === 'k') {
         e.preventDefault();
         setIsCommandPaletteOpen(true);
+        return;
       }
+      
+      // New Prompt (Cmd+N)
+      if (e.metaKey && e.key === 'n') {
+        e.preventDefault();
+        const newPromptCommand = commands.find(cmd => cmd.id === 'new-prompt');
+        if (newPromptCommand) newPromptCommand.action();
+        return;
+      }
+      
+      // Analytics (Cmd+A) - but not if text is selected
+      if (e.metaKey && e.key === 'a' && !window.getSelection()?.toString()) {
+        e.preventDefault();
+        const analyticsCommand = commands.find(cmd => cmd.id === 'analytics');
+        if (analyticsCommand) analyticsCommand.action();
+        return;
+      }
+      
+      // Workflows (Cmd+W)
+      if (e.metaKey && e.key === 'w') {
+        e.preventDefault();
+        const workflowsCommand = commands.find(cmd => cmd.id === 'workflows');
+        if (workflowsCommand) workflowsCommand.action();
+        return;
+      }
+      
+      // Close Command Palette (Escape)
       if (e.key === 'Escape') {
         setIsCommandPaletteOpen(false);
       }
@@ -75,7 +154,7 @@ export const ShortcutsManager: React.FC<ShortcutsManagerProps> = ({ className })
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [commands]);
 
   return (
     <>

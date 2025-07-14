@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { MetricCard } from './MetricCard';
+import { showToast } from '@/lib/utils/toast';
 
 interface AnalyticsDashboardProps {
   className?: string;
+  onOpenSearch?: () => void;
+  onCreateWorkflow?: () => void;
+  onOpenShortcuts?: () => void;
 }
 
-export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ className }) => {
+export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ 
+  className,
+  onOpenSearch,
+  onCreateWorkflow,
+  onOpenShortcuts
+}) => {
   const [metrics, setMetrics] = useState({
     totalPrompts: 0,
     activeUsers: 0,
@@ -46,7 +55,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
   }, []);
 
   return (
-    <div className={clsx('space-y-6', className)}>
+    <div className={clsx('space-y-6', className)} data-testid="analytics-dashboard">
       {/* Header */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Analytics Dashboard</h1>
@@ -117,15 +126,57 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ classNam
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button className="flex items-center justify-center px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors">
+          <button 
+            onClick={() => {
+              if (onOpenSearch) {
+                onOpenSearch();
+              } else {
+                // Fallback: focus on search input if it exists
+                const searchInput = document.querySelector('input[placeholder*="Search"]') as HTMLInputElement;
+                if (searchInput) {
+                  searchInput.focus();
+                  searchInput.select();
+                  showToast('Search activated! Start typing to search.', { type: 'success' });
+                } else {
+                  showToast('Search functionality activated! Use Cmd+K to open search.', { type: 'info' });
+                }
+              }
+            }}
+            className="flex items-center justify-center px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
+          >
             <span className="mr-2">🔍</span>
             Global Search
           </button>
-          <button className="flex items-center justify-center px-4 py-3 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg transition-colors">
+          <button 
+            onClick={() => {
+              if (onCreateWorkflow) {
+                onCreateWorkflow();
+              } else {
+                showToast('Create Workflow feature coming soon! This will open the workflow builder.', { type: 'info' });
+              }
+            }}
+            className="flex items-center justify-center px-4 py-3 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg transition-colors"
+          >
             <span className="mr-2">⚡</span>
             Create Workflow
           </button>
-          <button className="flex items-center justify-center px-4 py-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors">
+          <button 
+            onClick={() => {
+              if (onOpenShortcuts) {
+                onOpenShortcuts();
+              } else {
+                // Trigger the command palette
+                const event = new KeyboardEvent('keydown', {
+                  key: 'k',
+                  metaKey: true,
+                  bubbles: true
+                });
+                window.dispatchEvent(event);
+                showToast('Command palette opened! Press Cmd+K to access shortcuts.', { type: 'success' });
+              }
+            }}
+            className="flex items-center justify-center px-4 py-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors"
+          >
             <span className="mr-2">⌨️</span>
             Shortcuts (Cmd+K)
           </button>
