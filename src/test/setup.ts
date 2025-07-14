@@ -1,41 +1,41 @@
-// Vitest test setup file
-import '@testing-library/jest-dom'
+import '@testing-library/jest-dom';
+import { beforeAll, afterEach, afterAll } from 'vitest';
+import { cleanup } from '@testing-library/react';
+import { server } from './mocks/server';
 
-// Global test configuration
-import { afterEach, vi } from 'vitest'
-import { cleanup } from '@testing-library/react'
+// MSW setup
+beforeAll(() => {
+  server.listen({ onUnhandledRequest: 'error' });
+});
 
-// Cleanup after each test
 afterEach(() => {
-  cleanup()
-})
+  server.resetHandlers();
+  cleanup();
+});
 
-// Mock fetch for tests
-global.fetch = vi.fn()
+afterAll(() => {
+  server.close();
+});
 
-// Mock environment variables for tests
-process.env.NODE_ENV = 'test'
+// Mock environment variables
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => {},
+  }),
+});
 
-// Mock Supabase to prevent multiple client instances in tests
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn(() => ({
-    auth: {
-      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
-      signUp: vi.fn(),
-      signIn: vi.fn(),
-      signOut: vi.fn(),
-      onAuthStateChange: vi.fn(() => ({
-        data: { subscription: { unsubscribe: vi.fn() } }
-      }))
-    },
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      insert: vi.fn().mockReturnThis(),
-      update: vi.fn().mockReturnThis(),
-      delete: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis()
-    }))
-  }))
-}))
-
-// Custom matchers and global test utilities can be added here
+// Mock IntersectionObserver
+global.IntersectionObserver = class IntersectionObserver {
+  constructor() {}
+  observe() {}
+  disconnect() {}
+  unobserve() {}
+};
