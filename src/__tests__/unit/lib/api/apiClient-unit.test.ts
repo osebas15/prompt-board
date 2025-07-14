@@ -223,22 +223,17 @@ describe('API Error Handling (Unit)', () => {
         mockFetch.mockRejectedValue(new Error('Network error'));
 
         try {
-          // Create the request promise
-          const requestPromise = apiClient.request({
+          // Create the request promise and immediately wrap it in expect
+          const requestPromise = expect(apiClient.request({
             url: '/test',
             method: 'GET',
-          });
-
-          // Add a promise rejection handler to prevent unhandled rejections
-          requestPromise.catch(() => {
-            // Intentionally empty - we expect this to reject
-          });
+          })).rejects.toThrow('Network error');
 
           // Advance timers to process all retry attempts
           await vi.runAllTimersAsync();
 
-          // Now await the promise which should be rejected
-          await expect(requestPromise).rejects.toThrow('Network error');
+          // Wait for the promise to complete
+          await requestPromise;
           expect(mockFetch).toHaveBeenCalledTimes(3); // maxAttempts
         } finally {
           vi.useRealTimers();
