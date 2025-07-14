@@ -5,11 +5,17 @@ export interface AppError extends Error {
   context?: Record<string, any>;
   timestamp?: Date;
   userMessage?: string;
+  severity?: ErrorSeverity;
+  errorId?: string;
+  originalError?: Error;
 }
 
 export interface ErrorInfo {
   componentStack: string;
   errorBoundary?: string;
+  userId?: string;
+  action?: string;
+  context?: Record<string, any>;
 }
 
 export interface ErrorDetails {
@@ -31,4 +37,6 @@ export interface ErrorLogEntry {
   details: ErrorDetails;
   resolved: boolean;
   created_at: Date;
+  errorId?: string;
+  userId?: string;
 }

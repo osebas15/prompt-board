@@ -10,12 +10,16 @@ interface ErrorFallbackProps {
 }
 
 function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) {
+  const isCritical = error.severity === 'critical';
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
-        <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+        <div className={`flex items-center justify-center w-12 h-12 mx-auto rounded-full mb-4 ${
+          isCritical ? 'bg-red-500' : 'bg-red-100'
+        }`}>
           <svg
-            className="w-6 h-6 text-red-600"
+            className={`w-6 h-6 ${isCritical ? 'text-white' : 'text-red-600'}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -30,7 +34,7 @@ function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) {
         </div>
         
         <h2 className="text-lg font-semibold text-gray-900 text-center mb-2">
-          Something went wrong
+          {isCritical ? 'Critical Error Occurred' : 'Something went wrong'}
         </h2>
         
         <p className="text-gray-600 text-center mb-6">
@@ -40,6 +44,14 @@ function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) {
         <div className="flex flex-col space-y-3">
           <Button onClick={resetErrorBoundary} className="w-full">
             Try again
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            onClick={() => window.location.reload()}
+            className="w-full"
+          >
+            Reload page
           </Button>
           
           <Button 
@@ -56,9 +68,14 @@ function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) {
             <summary className="cursor-pointer text-sm text-gray-500">
               Error details (dev only)
             </summary>
-            <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto">
+            <pre className="mt-2 text-xs bg-gray-100 p-2 rounded overflow-auto max-h-40">
               {error.stack}
             </pre>
+            {error.errorId && (
+              <p className="mt-2 text-xs text-gray-500">
+                Error ID: {error.errorId}
+              </p>
+            )}
           </details>
         )}
       </div>
@@ -77,14 +94,28 @@ export function ErrorBoundary({
   fallback = ErrorFallback,
   onError 
 }: ErrorBoundaryProps) {
-  const handleError = (error: Error, errorInfo: ErrorInfo) => {
+  const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
     const appError = error as AppError;
     
+    // Convert React.ErrorInfo to our ErrorInfo
+    const customErrorInfo: ErrorInfo = {
+      componentStack: errorInfo.componentStack || '',
+      errorBoundary: 'ErrorBoundary',
+    };
+    
+    // Enhance error with additional context
+    if (!appError.errorId) {
+      appError.errorId = `boundary_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+    }
+    if (!appError.severity) {
+      appError.severity = 'high'; // Errors caught by boundary are typically significant
+    }
+    
     // Log error to monitoring service
-    errorLogger.logError(appError, errorInfo);
+    errorLogger.logError(appError, customErrorInfo);
     
     // Call custom error handler if provided
-    onError?.(appError, errorInfo);
+    onError?.(appError, customErrorInfo);
   };
 
   return (
