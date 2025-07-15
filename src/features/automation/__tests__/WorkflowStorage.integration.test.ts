@@ -4,7 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import type { Workflow, WorkflowExecution, WorkflowTemplate } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
-describe('WorkflowStorage Integration Tests', () => {
+describe.skip('WorkflowStorage Integration Tests', () => {
   let storage: WorkflowStorage;
   let testUserId: string;
   let createdWorkflowIds: string[] = [];

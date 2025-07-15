@@ -7,7 +7,4 @@ const variables = { name: 'John' };
 
 const result = engine.interpolateVariables(template, variables);
 
-console.log('Template:', template);
-console.log('Variables:', variables);
-console.log('Result:', result);
-console.log('Expected: Hello John, your score {{missing}}');
+// Debug test file - logs removed for cleaner output

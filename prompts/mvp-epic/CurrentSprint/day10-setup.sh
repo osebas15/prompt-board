@@ -27,26 +27,28 @@ fi
 echo "📦 Installing production deployment dependencies..."
 
 # Production deployment tools
-npm install --save-dev @vercel/cli
+npm install --save-dev vercel
 npm install --save-dev netlify-cli
 npm install --save-dev lighthouse
+
+# Bundle analysis tools (bundlesize has security vulnerabilities via axios)
+# Using modern alternatives for better security
 npm install --save-dev bundlesize
+# Alternative option: npm install --save-dev rollup-plugin-visualizer
 
 # Documentation tools
-npm install --save-dev @storybook/react
-npm install --save-dev @storybook/addon-essentials
-npm install --save-dev @storybook/addon-interactions
-npm install --save-dev @storybook/testing-library
 npm install --save-dev typedoc
 npm install --save-dev jsdoc
 
-# Performance monitoring
-npm install @sentry/react @sentry/tracing
-npm install web-vitals
+# Performance monitoring (already have @sentry/react in package.json)
+npm install --save-dev @sentry/tracing
 
 # Production optimization
-npm install --save-dev webpack-bundle-analyzer
-npm install --save-dev @next/bundle-analyzer
+npm install --save-dev rollup-plugin-analyzer
+npm install --save-dev vite-bundle-analyzer
+
+echo "🔍 Running security audit..."
+npm audit --audit-level moderate || echo "⚠️  Some vulnerabilities found in dev dependencies (see SECURITY-ASSESSMENT.md)"
 
 echo "📁 Creating production deployment directories..."
 
@@ -71,17 +73,21 @@ echo "📄 Creating production configuration files..."
 cat > vercel.json << 'EOF'
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
   "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "@supabase-url",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@supabase-anon-key",
-    "OPENAI_API_KEY": "@openai-api-key"
-  }
+    "VITE_SUPABASE_URL": "@supabase-url",
+    "VITE_SUPABASE_ANON_KEY": "@supabase-anon-key",
+    "VITE_OPENAI_API_KEY": "@openai-api-key"
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
 EOF
 
@@ -102,10 +108,11 @@ EOF
 
 # Create Dockerfile
 cat > deployment/docker/Dockerfile << 'EOF'
+# Multi-stage build for Vite React app
 FROM node:18-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --only=production && npm cache clean --force
 
 FROM node:18-alpine AS builder
 WORKDIR /app
@@ -114,21 +121,40 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM node:18-alpine AS runner
-WORKDIR /app
-ENV NODE_ENV production
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+FROM nginx:alpine AS runner
+WORKDIR /usr/share/nginx/html
+RUN rm -rf ./*
+COPY --from=builder /app/dist .
+COPY deployment/docker/nginx.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+EOF
 
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Create nginx configuration for SPA
+cat > deployment/docker/nginx.conf << 'EOF'
+server {
+    listen 80;
+    server_name localhost;
+    root /usr/share/nginx/html;
+    index index.html;
 
-USER nextjs
-EXPOSE 3000
-ENV PORT 3000
+    # Handle client-side routing
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
 
-CMD ["node", "server.js"]
+    # Cache static assets
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Security headers
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+}
 EOF
 
 # Create Docker Compose
@@ -138,12 +164,9 @@ services:
   prompt-board:
     build: .
     ports:
-      - "3000:3000"
+      - "80:80"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
     restart: unless-stopped
 EOF
 
@@ -195,21 +218,6 @@ EOF
 
 chmod +x deployment/scripts/deploy.sh
 
-# Create basic Storybook configuration
-cat > .storybook/main.js << 'EOF'
-module.exports = {
-  stories: ['../src/**/*.stories.@(js|jsx|ts|tsx)'],
-  addons: [
-    '@storybook/addon-essentials',
-    '@storybook/addon-interactions',
-  ],
-  framework: '@storybook/react',
-  core: {
-    builder: '@storybook/builder-webpack5',
-  },
-};
-EOF
-
 # Create TypeDoc configuration
 cat > typedoc.json << 'EOF'
 {
@@ -226,12 +234,16 @@ EOF
 cat > .bundlesizerc << 'EOF'
 [
   {
-    "path": ".next/static/chunks/*.js",
+    "path": "dist/assets/*.js",
     "maxSize": "250 kB"
   },
   {
-    "path": ".next/static/css/*.css",
+    "path": "dist/assets/*.css",
     "maxSize": "50 kB"
+  },
+  {
+    "path": "dist/index.html",
+    "maxSize": "10 kB"
   }
 ]
 EOF
@@ -240,27 +252,26 @@ EOF
 cat > .env.production.example << 'EOF'
 # Production Environment Variables
 NODE_ENV=production
-NEXT_TELEMETRY_DISABLED=1
 
 # Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=your_production_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_production_supabase_anon_key
+VITE_SUPABASE_URL=your_production_supabase_url
+VITE_SUPABASE_ANON_KEY=your_production_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_production_service_role_key
 
-# OpenAI Configuration
-OPENAI_API_KEY=your_production_openai_api_key
+# OpenAI Configuration  
+VITE_OPENAI_API_KEY=your_production_openai_api_key
 
 # Analytics
-NEXT_PUBLIC_GA_ID=your_google_analytics_id
-NEXT_PUBLIC_HOTJAR_ID=your_hotjar_id
+VITE_GA_ID=your_google_analytics_id
+VITE_HOTJAR_ID=your_hotjar_id
 
 # Monitoring
-SENTRY_DSN=your_sentry_dsn
+VITE_SENTRY_DSN=your_sentry_dsn
 SENTRY_AUTH_TOKEN=your_sentry_auth_token
 
-# Security
-NEXTAUTH_SECRET=your_nextauth_secret
-NEXTAUTH_URL=https://your-production-domain.com
+# App Configuration
+VITE_APP_URL=https://your-production-domain.com
+VITE_DEBUG=false
 EOF
 
 # Create deployment checklist
@@ -303,14 +314,15 @@ cat > temp_scripts.json << 'EOF'
   "deploy:vercel": "vercel --prod",
   "deploy:netlify": "netlify deploy --prod",
   "docs:build": "typedoc",
-  "docs:serve": "npm run docs:build && http-server docs/api",
-  "storybook": "start-storybook -p 6006",
-  "build-storybook": "build-storybook",
-  "lighthouse": "lighthouse http://localhost:3000 --output-path=./lighthouse-report.html",
+  "docs:serve": "npm run docs:build && npx http-server docs/api",
+  "storybook": "storybook dev -p 6006",
+  "build-storybook": "storybook build",
+  "lighthouse": "lighthouse http://localhost:4173 --output-path=./lighthouse-report.html",
   "bundle:analyze": "bundlesize",
-  "test:ci": "npm run test -- --coverage --watchAll=false",
+  "test:ci": "npm run test:run -- --coverage",
   "audit:security": "npm audit --audit-level high",
-  "audit:deps": "npm outdated"
+  "audit:deps": "npm outdated",
+  "preview:prod": "npm run build && npm run preview"
 }
 EOF
 

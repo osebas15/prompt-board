@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { usePrompt, useDeletePrompt, useUpdatePrompt } from '../../hooks/usePrompts';
 import type { Prompt } from '../../utils/validation';
+import { logger } from '../../../../lib/debug/logger';
 
 export interface PromptDetailProps {
   promptId: string;
@@ -77,7 +78,7 @@ export const PromptDetail: React.FC<PromptDetailProps> = ({
       setShowCopyFeedback(true);
       setTimeout(() => setShowCopyFeedback(false), 2000);
     } catch (error) {
-      console.error('Failed to copy content:', error);
+      logger.error('Failed to copy content:', error);
     }
   };
 
@@ -90,7 +91,7 @@ export const PromptDetail: React.FC<PromptDetailProps> = ({
         updates: { is_favorite: !prompt.is_favorite }
       });
     } catch (error) {
-      console.error('Failed to toggle favorite:', error);
+      logger.error('Failed to toggle favorite:', error);
     }
   };
 
@@ -99,7 +100,7 @@ export const PromptDetail: React.FC<PromptDetailProps> = ({
       try {
         await deletePromptMutation.mutateAsync(promptId);
       } catch (error) {
-        console.error('Failed to delete prompt:', error);
+        logger.error('Failed to delete prompt:', error);
       }
     }
   };

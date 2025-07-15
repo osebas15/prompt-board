@@ -6,6 +6,10 @@ import { EnvDebugger } from '@/components/EnvDebugger'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { SignupPage } from '@/features/auth/pages/SignupPage'
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage'
+import { SearchBar } from '@/features/search/components'
+import { AnalyticsDashboard } from '@/features/analytics/components'
+import { ShortcutsManager } from '@/features/shortcuts/components'
+import { WorkflowsManager } from '@/features/automation/components'
 import './App.css'
 
 const Dashboard = () => {
@@ -20,6 +24,12 @@ const Dashboard = () => {
               <h1 className="text-xl font-bold text-gray-900">Prompt Board</h1>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Search Bar */}
+              <div className="w-80">
+                <SearchBar placeholder="Search prompts, categories, and content..." />
+              </div>
+              {/* Shortcuts Manager */}
+              <ShortcutsManager />
               <span className="text-gray-700">Welcome, {user?.email}</span>
               <button
                 onClick={signOut}
@@ -33,14 +43,12 @@ const Dashboard = () => {
       </nav>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="border-4 border-dashed border-gray-200 rounded-lg h-96 flex items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Welcome to Prompt Board!</h2>
-              <p className="text-gray-600">Your authentication is working correctly.</p>
-              <p className="text-sm text-gray-500 mt-2">User ID: {user?.id}</p>
-            </div>
-          </div>
+        <div className="px-4 py-6 sm:px-0 space-y-8">
+          {/* Analytics Dashboard */}
+          <AnalyticsDashboard />
+          
+          {/* Workflows Manager */}
+          <WorkflowsManager />
         </div>
       </main>
     </div>

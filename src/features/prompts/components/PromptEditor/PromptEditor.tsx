@@ -8,6 +8,7 @@ import {
   useUpdatePrompt 
 } from '../../hooks/usePrompts';
 import { CreatePromptSchema, UpdatePromptSchema, type CreatePrompt, type UpdatePrompt, type Prompt } from '../../utils/validation';
+import { logger } from '../../../../lib/debug/logger';
 
 export interface PromptEditorProps {
   promptId?: string;
@@ -128,7 +129,7 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
         updates: debouncedValues as UpdatePrompt
       });
     } catch (error) {
-      console.error('Auto-save failed:', error);
+      logger.error('Auto-save failed:', error);
     }
   };
 
@@ -143,7 +144,7 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
         });
       }
     } catch (error) {
-      console.error('Save failed:', error);
+      logger.error('Save failed:', error);
     }
   };
 

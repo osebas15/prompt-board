@@ -1,33 +1,16 @@
-/// <reference types="vitest/config" />
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import path from 'path'
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
+  plugins: [react()],
   test: {
-    // Test environment
-    environment: 'jsdom',
-    
-    // Setup files
-    setupFiles: ['./src/test/setup.ts'],
-    
-    // Global test settings
     globals: true,
-    
-    // Test environment variables
-    env: {
-      VITE_SUPABASE_URL: 'http://localhost:54321',
-      VITE_SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
-    },
-    
-    // Coverage configuration
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    css: true,
+    // Note: env test needs to control environment variables itself
+    // Other tests rely on these defaults
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -35,8 +18,7 @@ export default defineConfig({
         'node_modules/',
         'src/test/',
         '**/*.d.ts',
-        '**/*.config.*',
-        '**/coverage/**',
+        '**/*.config.{js,ts}',
         '**/dist/**',
       ],
       thresholds: {
@@ -48,36 +30,10 @@ export default defineConfig({
         },
       },
     },
-    
-    // Include test files
-    include: [
-      'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-    ],
-    
-    // Exclude files
-    exclude: [
-      'node_modules/',
-      'dist/',
-      '.git/',
-      '.cache/',
-      // Exclude integration tests from unit tests
-      '**/*.integration.test.*',
-    ],
-    
-    // Reporter configuration
-    reporters: ['verbose', 'html'],
-    outputFile: {
-      html: './coverage/index.html',
-    },
-    
-    // Test timeout
-    testTimeout: 10000,
-    
-    // Watch options
-    watch: true,
-    
-    // UI configuration
-    ui: true,
-    open: false,
   },
-})
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+});

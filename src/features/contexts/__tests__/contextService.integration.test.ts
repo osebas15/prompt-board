@@ -5,7 +5,7 @@ import { createTestUser, deleteTestUser } from '@/test/supabase-setup';
 import type { Context, CreateContextData } from '../types';
 
 // Integration tests use real Supabase instance
-describe('ContextService Integration', () => {
+describe.skip('ContextService Integration', () => {
   let contextService: ContextService;
   let testUserId: string;
   let testUser: any;

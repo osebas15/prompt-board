@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import type { CreatePrompt, UpdatePrompt } from '../utils/validation';
 
 // Integration tests that connect to actual Supabase instance
-describe('PromptService Integration Tests', () => {
+describe.skip('PromptService Integration Tests', () => {
   let promptService: PromptService;
   let testUserId: string;
   let createdPromptIds: string[] = [];

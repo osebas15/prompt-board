@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { logger, isDebugEnabled } from './debug/logger'
 
 const envSchema = z.object({
   VITE_SUPABASE_URL: z
@@ -18,18 +19,19 @@ const envSchema = z.object({
   VITE_GEMINI_API_KEY: z.string().optional(),
   VITE_APP_NAME: z.string().optional(),
   VITE_APP_DESCRIPTION: z.string().optional(),
+  VITE_DEBUG: z.string().optional(),
 })
 
 function validateEnv() {
   // Log environment information
-  console.log('🔧 Environment Validation Starting...')
-  console.log('📂 Current working directory:', typeof window !== 'undefined' ? window.location.origin : 'server')
-  console.log('🏗️ Vite mode:', import.meta.env.MODE)
-  console.log('🏗️ Vite dev mode:', import.meta.env.DEV)
-  console.log('🏗️ Vite prod mode:', import.meta.env.PROD)
+  logger.infoOnce('🔧 Environment Validation Starting...')
+  logger.debug('📂 Current working directory:', typeof window !== 'undefined' ? window.location.origin : 'server')
+  logger.debug('🏗️ Vite mode:', import.meta.env.MODE)
+  logger.debug('🏗️ Vite dev mode:', import.meta.env.DEV)
+  logger.debug('🏗️ Vite prod mode:', import.meta.env.PROD)
   
   // Log all environment variables that start with VITE_
-  console.log('📋 All VITE_ environment variables:')
+  logger.debug('📋 All VITE_ environment variables:')
   const allEnvVars = Object.keys(import.meta.env)
     .filter(key => key.startsWith('VITE_'))
     .reduce((acc, key) => {
@@ -42,7 +44,9 @@ function validateEnv() {
       return acc
     }, {} as Record<string, string>)
   
-  console.table(allEnvVars)
+  if (isDebugEnabled()) {
+    console.table(allEnvVars)
+  }
   
   // Extract values for validation
   const rawEnvVars = {
@@ -51,23 +55,24 @@ function validateEnv() {
     VITE_GEMINI_API_KEY: import.meta.env.VITE_GEMINI_API_KEY,
     VITE_APP_NAME: import.meta.env.VITE_APP_NAME,
     VITE_APP_DESCRIPTION: import.meta.env.VITE_APP_DESCRIPTION,
+    VITE_DEBUG: import.meta.env.VITE_DEBUG,
   }
   
-  console.log('🧪 Raw environment variables before validation:')
-  console.log('VITE_SUPABASE_URL:', rawEnvVars.VITE_SUPABASE_URL || 'undefined')
-  console.log('VITE_SUPABASE_ANON_KEY:', rawEnvVars.VITE_SUPABASE_ANON_KEY ? `${rawEnvVars.VITE_SUPABASE_ANON_KEY.substring(0, 20)}...` : 'undefined')
-  console.log('VITE_GEMINI_API_KEY:', rawEnvVars.VITE_GEMINI_API_KEY ? 'Set' : 'undefined')
+  logger.debug('🧪 Raw environment variables before validation:')
+  logger.debug('VITE_SUPABASE_URL:', rawEnvVars.VITE_SUPABASE_URL || 'undefined')
+  logger.debug('VITE_SUPABASE_ANON_KEY:', rawEnvVars.VITE_SUPABASE_ANON_KEY ? `${rawEnvVars.VITE_SUPABASE_ANON_KEY.substring(0, 20)}...` : 'undefined')
+  logger.debug('VITE_GEMINI_API_KEY:', rawEnvVars.VITE_GEMINI_API_KEY ? 'Set' : 'undefined')
   
   try {
     const validatedEnv = envSchema.parse(rawEnvVars)
-    console.log('✅ Environment validation successful!')
+    logger.infoOnce('✅ Environment validation successful!')
     return validatedEnv
   } catch (error) {
-    console.error('❌ Environment validation failed!')
+    logger.forceError('❌ Environment validation failed!')
     if (error instanceof z.ZodError) {
-      console.error('🚨 Validation errors:')
+      logger.forceError('🚨 Validation errors:')
       error.errors.forEach(err => {
-        console.error(`  - ${err.path.join('.')}: ${err.message}`)
+        logger.forceError(`  - ${err.path.join('.')}: ${err.message}`)
       })
       
       const missingVars = error.errors.map(err => `${err.path.join('.')}: ${err.message}`).join('\n')
