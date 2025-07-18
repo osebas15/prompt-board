@@ -2,13 +2,18 @@ import { supabase } from '../supabase';
 import type { PostgrestError } from '@supabase/supabase-js';
 
 export class DatabaseError extends Error {
+  readonly code?: string;
+  readonly details?: string;
+
   constructor(
     message: string,
-    public code?: string,
-    public details?: string
+    code?: string,
+    details?: string
   ) {
     super(message);
     this.name = 'DatabaseError';
+    this.code = code;
+    this.details = details;
   }
 }
 

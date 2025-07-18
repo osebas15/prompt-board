@@ -2,9 +2,9 @@ name: CI Tests
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
 
 jobs:
   test:
@@ -18,7 +18,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20.x'
+        node-version: '22.x'
         cache: 'npm'
         
     - name: Install dependencies
@@ -28,8 +28,15 @@ jobs:
       run: npm run lint
       continue-on-error: true
       
-    - name: Run tests
+    - name: Run unit tests
       run: npm run test:ci
       
     - name: Build application
       run: npm run build
+      
+    - name: Upload test coverage
+      uses: codecov/codecov-action@v4
+      if: success()
+      with:
+        file: ./coverage/coverage-final.json
+        fail_ci_if_error: false

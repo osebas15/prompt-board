@@ -11,7 +11,7 @@ export interface AppError extends Error {
 }
 
 export interface ErrorInfo {
-  componentStack: string;
+  componentStack?: string; // Made optional for better usability
   errorBoundary?: string;
   userId?: string;
   action?: string;

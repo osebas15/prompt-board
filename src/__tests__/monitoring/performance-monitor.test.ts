@@ -263,10 +263,11 @@ describe('PerformanceMonitor', () => {
       const networkInfo = monitor.getNetworkInfo();
 
       // Assert
-      expect(networkInfo.effectiveType).toBe('4g');
-      expect(networkInfo.downlink).toBe(10);
-      expect(networkInfo.rtt).toBe(100);
-      expect(networkInfo.quality).toBe('good'); // Based on 4g connection
+      expect(networkInfo).toBeDefined();
+      expect(networkInfo!.effectiveType).toBe('4g');
+      expect(networkInfo!.downlink).toBe(10);
+      expect(networkInfo!.rtt).toBe(100);
+      expect(networkInfo!.quality).toBe('good'); // Based on 4g connection
     });
 
     it('should handle slow network connections', () => {
@@ -285,7 +286,8 @@ describe('PerformanceMonitor', () => {
       const networkInfo = monitor.getNetworkInfo();
 
       // Assert
-      expect(networkInfo.quality).toBe('poor');
+      expect(networkInfo).toBeDefined();
+      expect(networkInfo!.quality).toBe('poor');
     });
   });
 });

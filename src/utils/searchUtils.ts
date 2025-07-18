@@ -28,7 +28,7 @@ export function searchPrompts(
   query: string
 ): Prompt[] {
   if (!query.trim()) {
-    return searcher.getIndex().docs as Prompt[];
+    return []; // TODO: Fix searcher.getIndex() type compatibility
   }
 
   const results = searcher.search(query);

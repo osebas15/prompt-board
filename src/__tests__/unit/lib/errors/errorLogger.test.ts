@@ -24,6 +24,7 @@ describe('ErrorLogger', () => {
       error.errorId = 'test-error-id';
 
       errorLogger.logError(error, {
+        componentStack: 'test-component-stack',
         userId: 'user-123',
         action: 'test-action',
         context: { page: 'test-page' }

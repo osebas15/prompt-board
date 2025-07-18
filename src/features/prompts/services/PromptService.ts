@@ -373,10 +373,9 @@ export class PromptService {
       content: originalPrompt.content,
       category: originalPrompt.category,
       category_id: originalPrompt.category_id,
-      tags: originalPrompt.tags,
+      tags: originalPrompt.tags || [],
       is_public: false, // Duplicates are private by default
       user_id: originalPrompt.user_id,
-      last_used_at: null,
       rating: null,
       description: originalPrompt.description,
       model_compatibility: originalPrompt.model_compatibility,
@@ -384,7 +383,7 @@ export class PromptService {
       is_favorite: false,
       folder_id: originalPrompt.folder_id,
       parent_id: originalPrompt.id, // Link to original
-      is_template: originalPrompt.is_template,
+      is_template: originalPrompt.is_template || false,
       template_variables: originalPrompt.template_variables,
       ...updates
     };

@@ -4,8 +4,8 @@ import { searchService } from '../services/SearchService';
 import type { 
   SearchState, 
   SearchFilters, 
-  SearchOptions,
-  GlobalSearchItem 
+  SearchOptions
+  // GlobalSearchItem - removed unused import
 } from '../types';
 
 export function useGlobalSearch(initialFilters: SearchFilters = {}) {
@@ -40,8 +40,8 @@ export function useGlobalSearch(initialFilters: SearchFilters = {}) {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const results = searchService.search(query, filters, options);
-      const suggestions = query ? searchService.getSuggestions(query) : [];
+      const results = await searchService.search(query, filters, options);
+      const suggestions = query ? await searchService.getSuggestions(query) : [];
 
       setState(prev => ({
         ...prev,
@@ -53,6 +53,9 @@ export function useGlobalSearch(initialFilters: SearchFilters = {}) {
     } catch (error) {
       setState(prev => ({
         ...prev,
+        results: [],
+        suggestions: [],
+        totalCount: 0,
         error: error instanceof Error ? error.message : 'Search failed',
         isLoading: false,
       }));

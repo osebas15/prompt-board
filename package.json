@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev:debug": "VITE_DEBUG=true vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b tsconfig.build.json && vite build",
+    "build:check": "tsc -b tsconfig.app.json --noEmit",
     "lint": "eslint .",
     "lint:check": "eslint . --max-warnings=999999",
     "preview": "vite preview",
@@ -54,7 +55,12 @@
     "audit:report": "npm audit --json > security-audit-$(date +%Y%m%d).json",
     "audit:fix": "npm audit fix --only=prod",
     "audit:deps": "npm outdated",
-    "preview:prod": "npm run build && npm run preview"
+    "preview:prod": "npm run build && npm run preview",
+    "deploy:migrations": "./scripts/deploy-migrations.sh",
+    "deploy:check": "npm run test:run && npm run build",
+    "deploy:production": "npm run deploy:check && npm run deploy:migrations",
+    "env:validate": "node scripts/validate-env.js",
+    "env:copy-template": "cp .env.template .env.local"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -1,0 +1,6 @@
+I have a live site through netlify, and supabase for prompt-board,
+please configure my application for release. 
+We need
+1. my supabase migrations to be applied in my upstream supabase instance,
+2. best practice secure management of my env file
+3. a working simple github CI configuration with only best practices that are necessary for my project
