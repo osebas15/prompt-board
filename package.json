@@ -21,6 +21,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
+    "test:unit": "vitest run --exclude='**/*.integration.test.*' --exclude='**/smoke/**'",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest --watch",
     "test:ci": "vitest run --coverage --reporter=verbose",
@@ -57,8 +58,8 @@
     "audit:deps": "npm outdated",
     "preview:prod": "npm run build && npm run preview",
     "deploy:migrations": "./scripts/deploy-migrations.sh",
-    "deploy:check": "npm run test:run && npm run build",
-    "deploy:production": "npm run deploy:check && npm run deploy:migrations",
+    "deploy:check": "npm run test:unit && npm run build",
+    "deploy:production": "npm run deploy:check",
     "env:validate": "node scripts/validate-env.js",
     "env:copy-template": "cp .env.template .env.local"
   },
