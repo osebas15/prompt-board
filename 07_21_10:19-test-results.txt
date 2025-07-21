@@ -1,0 +1,63 @@
+# Test Results Report - July 21, 2025 10:19
+
+## Summary
+Fixed 2 failing tests in `src/__tests__/database/prompts.test.ts` related to database test isolation issues.
+
+## Failed Tests Analysis
+
+### Test 1: "should validate visibility enum values"
+**Status**: ✅ FIXED
+**Original Problem**: Error - duplicate key value violates unique constraint "organizations_slug_key"
+**Root Cause**: Test isolation failure due to insufficient uniqueness in organization slug generation during `beforeEach` setup. Multiple tests running concurrently were creating organizations with identical slugs (`test-org-${Date.now()}`) causing database constraint violations.
+**Solution**: Enhanced slug generation to include both timestamp and random string: `test-org-${Date.now()}-${Math.random().toString(36).substring(2)}`
+**Best Practice Applied**: Proper test isolation by ensuring all test data has unique identifiers to prevent race conditions and constraint violations.
+
+### Test 2: "should auto-update updated_at timestamp"  
+**Status**: ✅ FIXED
+**Original Problem**: Error - duplicate key value violates unique constraint "organizations_slug_key"
+**Root Cause**: Same as Test 1 - test isolation failure in the shared `beforeEach` setup
+**Solution**: Same fix as Test 1 - enhanced slug generation with additional entropy
+**Validation**: Test now properly verifies that database triggers automatically update the `updated_at` timestamp when records are modified
+
+## Best Practices Applied
+
+1. **Test Data Uniqueness**: Enhanced identifier generation to prevent conflicts in concurrent test execution
+2. **Proper Test Isolation**: Ensured each test has completely unique test data that won't conflict with other tests
+3. **Race Condition Prevention**: Added sufficient entropy to test data generation to handle fast test execution
+4. **Database Constraint Awareness**: Understood and worked with database unique constraints rather than against them
+
+## Online Sources Referenced
+
+- [Vitest Test Isolation Best Practices](https://vitest.dev/guide/test-isolation.html) - for proper test setup patterns
+- [Database Testing Best Practices](https://martinfowler.com/articles/practical-test-pyramid.html#DatabaseTests) - for test data management
+- [JavaScript Random String Generation](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/random) - for entropy in test data
+
+## Technical Implementation
+
+**Before Fix:**
+```typescript
+const orgSlug = `test-org-${Date.now()}`
+```
+
+**After Fix:**
+```typescript  
+const orgSlug = `test-org-${Date.now()}-${Math.random().toString(36).substring(2)}`
+```
+
+This change ensures that even if tests run in the same millisecond, they will have unique slugs due to the random component.
+
+## Current Status
+- **Total Database Tests**: 12
+- **Passing**: 12 ✅
+- **Failed**: 0 
+- **Success Rate**: 100%
+
+## Verification
+Both failing tests now pass individually and when run as part of the complete test suite. The fix addresses the root cause of test isolation failure without changing the actual test logic or database schema validation.
+
+## Recommendations
+
+1. **Apply Similar Fix to Other Tests**: Review other test files (like `categories.test.ts`) for similar slug generation patterns
+2. **Test Data Factory**: Consider implementing a test data factory pattern for generating unique test entities
+3. **Database Reset Strategy**: Consider implementing database cleanup strategies for integration tests
+4. **Parallel Test Configuration**: Ensure Vitest configuration properly handles database tests in parallel execution

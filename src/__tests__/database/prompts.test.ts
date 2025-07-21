@@ -21,7 +21,7 @@ describe('Prompts Database Schema', () => {
   beforeEach(async () => {
     // Create test user and organization for each test
     const { data: userData, error: userError } = await supabase.auth.admin.createUser({
-      email: `test-${Date.now()}@example.com`,
+      email: `test-${Date.now()}-${Math.random().toString(36).substring(2)}@example.com`,
       password: 'testpassword123',
       email_confirm: true
     })
@@ -32,8 +32,8 @@ describe('Prompts Database Schema', () => {
     
     testUserId = userData.user.id
 
-    // Create test organization
-    const orgSlug = `test-org-${Date.now()}`
+    // Create test organization with unique slug to avoid conflicts
+    const orgSlug = `test-org-${Date.now()}-${Math.random().toString(36).substring(2)}`
     const { data: orgData, error: orgError } = await supabase
       .from('organizations')
       .insert({
