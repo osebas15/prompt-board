@@ -244,5 +244,5 @@ describe('Categories Database Schema', () => {
 
     // Clean up second user
     await supabase.auth.admin.deleteUser(user2Data.user!.id)
-  })
+  }, 15000) // Increased timeout for auth operations
 })

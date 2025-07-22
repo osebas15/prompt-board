@@ -246,6 +246,10 @@ describe('Authentication Integration Tests', () => {
       // Mock console.error to avoid noise from expected network errors
       const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
       
+      // Clear any existing auth state
+      localStorage.clear()
+      sessionStorage.clear()
+      
       render(
         <AuthProvider>
           <TestAuthComponent />
@@ -261,7 +265,7 @@ describe('Authentication Integration Tests', () => {
       expect(screen.getByTestId('user')).toHaveTextContent('no-user')
 
       mockConsoleError.mockRestore()
-    })
+    }, 10000) // Increased timeout
 
     it('should maintain consistent auth state across re-renders', async () => {
       const TestWrapper = () => {

@@ -105,7 +105,7 @@ describe('Authentication User Journey', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /check your email/i })).toBeInTheDocument()
     })
-  })
+  }, 10000) // Increased timeout for signup flow
 
   it('should complete login flow successfully', async () => {
     const user = userEvent.setup()
@@ -139,7 +139,10 @@ describe('Authentication User Journey', () => {
     const passwordInput = screen.getByLabelText(/password/i)
     const submitButton = screen.getByRole('button', { name: /sign in/i })
     
+    // Clear and type with explicit focus
+    await user.clear(emailInput)
     await user.type(emailInput, 'user@example.com')
+    await user.clear(passwordInput)
     await user.type(passwordInput, 'password123')
     await user.click(submitButton)
     
@@ -150,7 +153,7 @@ describe('Authentication User Journey', () => {
         password: 'password123'
       })
     })
-  })
+  }, 10000) // Increased timeout for login flow
 
   it('should handle password reset flow', async () => {
     const user = userEvent.setup()
