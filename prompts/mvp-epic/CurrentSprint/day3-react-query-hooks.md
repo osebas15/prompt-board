@@ -8,10 +8,76 @@ Implement React Query integration with custom hooks for prompt management, inclu
 ### Unit Tests to Write First
 ```typescript
 // tests/hooks/usePrompts.test.ts
+import { renderHook, waitFor } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { http, HttpResponse } from 'msw'
+import { setupServer } from 'msw/node'
+import { usePrompts } from '../../src/hooks/usePrompts'
+
+const server = setupServer(
+  http.get('/api/prompts', () => {
+    return HttpResponse.json([
+      { id: 1, title: 'Test Prompt', content: 'Test content' }
+    ])
+  })
+)
+
+beforeAll(() => server.listen())
+afterEach(() => server.resetHandlers())
+afterAll(() => server.close())
+
+const createWrapper = () => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } }
+  })
+  return ({ children }) => (
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  )
+}
+
 describe('usePrompts Hook', () => {
-  test('should fetch prompts for current user')
-  test('should apply filters and pagination')
-  test('should handle loading and error states')
+  test('should fetch prompts for current user', async () => {
+    const { result } = renderHook(() => usePrompts(), {
+      wrapper: createWrapper()
+    })
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true)
+    })
+
+    expect(result.current.data).toHaveLength(1)
+    expect(result.current.data[0].title).toBe('Test Prompt')
+  })
+
+  test('should apply filters and pagination', async () => {
+    const { result } = renderHook(() => usePrompts({ 
+      filters: { category: 'work' }, 
+      page: 2 
+    }), {
+      wrapper: createWrapper()
+    })
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true)
+    })
+  })
+
+  test('should handle loading and error states', async () => {
+    server.use(
+      http.get('/api/prompts', () => {
+        return HttpResponse.error()
+      })
+    )
+
+    const { result } = renderHook(() => usePrompts(), {
+      wrapper: createWrapper()
+    })
+
+    await waitFor(() => {
+      expect(result.current.isError).toBe(true)
+    })
+  })
+
   test('should cache results appropriately')
   test('should invalidate cache on data changes')
   test('should retry failed requests')
@@ -19,7 +85,33 @@ describe('usePrompts Hook', () => {
 
 // tests/hooks/useCreatePrompt.test.ts
 describe('useCreatePrompt Hook', () => {
-  test('should create prompt successfully')
+  test('should create prompt successfully', async () => {
+    server.use(
+      http.post('/api/prompts', async ({ request }) => {
+        const data = await request.json()
+        return HttpResponse.json({ 
+          id: 2, 
+          ...data 
+        }, { status: 201 })
+      })
+    )
+
+    const { result } = renderHook(() => useCreatePrompt(), {
+      wrapper: createWrapper()
+    })
+
+    act(() => {
+      result.current.mutate({
+        title: 'New Prompt',
+        content: 'New content'
+      })
+    })
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true)
+    })
+  })
+
   test('should handle optimistic updates')
   test('should rollback on error')
   test('should validate input data')
@@ -40,12 +132,70 @@ describe('useUpdatePrompt Hook', () => {
 ### Integration Tests to Write
 ```typescript
 // tests/integration/react-query-setup.test.ts
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { render, screen, waitFor } from '@testing-library/react'
+import { http, HttpResponse } from 'msw'
+import { setupServer } from 'msw/node'
+import { PromptsList } from '../../src/components/PromptsList'
+
+const server = setupServer(
+  http.get('/api/prompts', () => {
+    return HttpResponse.json([
+      { id: 1, title: 'Integration Test Prompt' }
+    ])
+  })
+)
+
+beforeAll(() => server.listen())
+afterEach(() => server.resetHandlers())
+afterAll(() => server.close())
+
 describe('React Query Integration', () => {
-  test('should configure query client properly')
-  test('should handle query invalidation across hooks')
-  test('should manage cache persistence')
-  test('should handle network status changes')
-  test('should implement proper error boundaries')
+  test('should configure query client properly', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          staleTime: 5 * 60 * 1000, // 5 minutes
+          cacheTime: 10 * 60 * 1000, // 10 minutes
+        },
+        mutations: {
+          retry: 1,
+        }
+      }
+    })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <PromptsList />
+      </QueryClientProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Integration Test Prompt')).toBeInTheDocument()
+    })
+  })
+
+  test('should handle query invalidation across hooks', async () => {
+    // Test cache invalidation after mutations
+  })
+
+  test('should manage cache persistence', () => {
+    // Test cache persistence strategies
+  })
+
+  test('should handle network status changes', async () => {
+    // Test offline/online behavior
+    server.use(
+      http.get('/api/prompts', () => {
+        return HttpResponse.error()
+      })
+    )
+  })
+
+  test('should implement proper error boundaries', () => {
+    // Test error boundary integration
+  })
 })
 ```
 
@@ -98,7 +248,7 @@ npm run test -- tests/hooks/optimistic-updates.test.ts
 ```
 
 ## Dependencies Required
-This task requires React Query testing utilities and mock service worker for API mocking.
+This task requires React Query testing utilities and MSW v2 for API mocking. Modern React 19 compatible packages only.
 
 ## Installation Script
 ```bash
@@ -107,20 +257,22 @@ This task requires React Query testing utilities and mock service worker for API
 
 echo "Installing Day 3 dependencies..."
 
-# Install React Query testing utilities
-npm install --save-dev @testing-library/react-hooks@^8.0.1
+# Note: @testing-library/react-hooks is deprecated and incompatible with React 19
+# Hook testing is now built into @testing-library/react (already installed)
 
-# Install MSW for API mocking (already installed, but ensuring version)
+# Install MSW v2 for API mocking (React 19 compatible)
 npm install --save-dev msw@^2.0.0
 
 # Install React Query development tools
 npm install --save @tanstack/react-query-devtools@^5.0.0
 
-# Install additional testing utilities for hooks
-npm install --save-dev react-hooks-testing-library@^1.0.0
+# Ensure we have the latest @testing-library/react for hook testing
+npm install --save-dev @testing-library/react@^16.0.0
 
 echo "Day 3 dependencies installed successfully!"
-echo "Run 'npm run test:hooks' to verify React Query integration"
+echo "Note: Hook testing is now built into @testing-library/react"
+echo "Use renderHook from @testing-library/react instead of @testing-library/react-hooks"
+echo "Run 'npm run test' to verify React Query integration"
 ```
 
 ## Success Metrics
