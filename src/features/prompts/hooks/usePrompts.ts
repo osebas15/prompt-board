@@ -56,7 +56,13 @@ export function usePrompts(
 ) {
   return useQuery({
     queryKey: promptQueryKeys.list(filters, pagination),
-    queryFn: () => promptService.listPrompts(filters, pagination),
+    queryFn: async () => {
+      try {
+        return await promptService.listPrompts(filters, pagination);
+      } catch (err) {
+        throw err;
+      }
+    },
     ...options
   });
 }
