@@ -29,6 +29,15 @@
 #### Secret 2: `SUPABASE_ACCESS_TOKEN`
 - **Name**: `SUPABASE_ACCESS_TOKEN`
 - **Value**: Your access token from Supabase Dashboard → Account → Access Tokens
+- **⚠️ Important**: The token MUST have **"Database Admin"** permissions for migrations to work
+
+#### 🔑 **Creating the Access Token**
+1. Go to [Supabase Dashboard → Account → Access Tokens](https://supabase.com/dashboard/account/tokens)
+2. Click **"Generate new token"**
+3. **Name**: `GitHub Actions Deploy` (or similar)
+4. **Scopes**: Select **"Database Admin"** (required for migrations)
+5. **Copy the token** immediately (it won't be shown again)
+6. **Add to GitHub Secrets** as `SUPABASE_ACCESS_TOKEN`
 
 ### 🔒 **For Production Environment Protection**
 
@@ -70,7 +79,27 @@ If you're using environment protection rules:
 Your database URL contains the project ref:
 `postgresql://postgres:[password]@db.[PROJECT_REF].supabase.co:5432/postgres`
 
-### 🔧 **Testing Your Setup**
+### � **Common Deployment Errors**
+
+#### Error: "failed SASL auth" Database Connection 
+```
+failed to connect to postgres: failed SASL auth (invalid SCRAM server-final-message received from server)
+```
+
+**Solutions:**
+1. **Check Access Token Permissions**: Your token MUST have "Database Admin" scope
+2. **Verify Token Format**: Make sure the token is copied correctly (no extra spaces/characters)
+3. **Regenerate Token**: Sometimes tokens can become invalid - create a new one
+
+#### Error: Interactive Password Prompts in CI
+```
+Enter your database password (or leave blank to skip):
+```
+
+**Cause**: The CLI is trying to authenticate interactively, which doesn't work in GitHub Actions.
+**Solution**: The updated deploy script handles this automatically with multiple fallback methods.
+
+### �🔧 **Testing Your Setup**
 
 After setting the secrets, you can test by:
 

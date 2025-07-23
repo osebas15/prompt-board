@@ -39,6 +39,12 @@ npm run dev
 - `npm run deploy:vercel` - Deploy to Vercel
 - `npm run deploy:netlify` - Deploy to Netlify
 - `npm run docker:prod` - Build and run Docker container
+- `./scripts/deploy-migrations.sh` - Deploy database migrations to Supabase
+
+### Database & Migration
+- `supabase start` - Start local Supabase instance
+- `supabase db push` - Apply migrations to remote database
+- `npm run test:integration` - Run integration tests with Supabase
 
 ### Security & Monitoring
 - `npm run audit:security` - Security audit (high severity)

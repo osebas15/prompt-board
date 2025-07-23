@@ -69,11 +69,19 @@ check_supabase_cli() {
 link_project() {
     print_info "Linking to Supabase project: $SUPABASE_PROJECT_REF"
     
-    if supabase link --project-ref "$SUPABASE_PROJECT_REF"; then
+    # Link to the project using access token authentication
+    # The --create-client flag helps avoid some interactive prompts
+    if supabase link --project-ref "$SUPABASE_PROJECT_REF" --create-client; then
         print_success "Successfully linked to project"
     else
-        print_error "Failed to link to project"
-        exit 1
+        print_warning "Link with --create-client failed, trying without flag..."
+        if supabase link --project-ref "$SUPABASE_PROJECT_REF"; then
+            print_success "Successfully linked to project"
+        else
+            print_error "Failed to link to project"
+            print_info "Make sure your SUPABASE_ACCESS_TOKEN has the necessary permissions"
+            exit 1
+        fi
     fi
 }
 
@@ -81,12 +89,54 @@ link_project() {
 run_migrations() {
     print_info "Applying database migrations..."
     
-    if supabase db push; then
-        print_success "Migrations applied successfully"
-    else
-        print_error "Migration failed"
-        exit 1
+    # List migration files for verification
+    if [ -d "supabase/migrations" ]; then
+        migration_count=$(ls -1 supabase/migrations/*.sql 2>/dev/null | wc -l)
+        print_info "Found $migration_count migration files"
     fi
+    
+    # Set non-interactive mode to avoid password prompts
+    export SUPABASE_INTERNAL_DID_WARN_ABOUT_1_X_DEPRECATION=true
+    
+    # Method 1: Try db push with include-all flag
+    print_info "Attempting to push migrations (Method 1: --include-all)..."
+    if supabase db push --include-all 2>/dev/null; then
+        print_success "Migrations applied successfully"
+        return 0
+    fi
+    
+    print_warning "Method 1 failed, trying Method 2..."
+    
+    # Method 2: Try with piped empty password
+    print_info "Attempting to push migrations (Method 2: empty password)..."
+    if echo "" | supabase db push 2>/dev/null; then
+        print_success "Migrations applied successfully"
+        return 0
+    fi
+    
+    print_warning "Method 2 failed, trying Method 3..."
+    
+    # Method 3: Try with explicit non-interactive flag if available
+    print_info "Attempting to push migrations (Method 3: standard push)..."
+    if timeout 30 supabase db push < /dev/null 2>/dev/null; then
+        print_success "Migrations applied successfully"
+        return 0
+    fi
+    
+    # All methods failed
+    print_error "All migration methods failed"
+    print_info "This might be due to:"
+    print_info "1. The access token not having 'Database Admin' permissions"
+    print_info "2. Interactive authentication being required"
+    print_info "3. No pending migrations to apply"
+    print_info "4. Network or database connectivity issues"
+    print_info ""
+    print_info "To fix this:"
+    print_info "1. Go to Supabase Dashboard → Settings → Access Tokens"
+    print_info "2. Ensure your token has 'Database Admin' permissions"
+    print_info "3. If using environment protection, verify secrets are set correctly"
+    
+    exit 1
 }
 
 # Main execution
