@@ -40,10 +40,14 @@ check_supabase_cli() {
     
     if ! command -v supabase &> /dev/null; then
         print_error "Supabase CLI is not installed"
-        print_info "Install with: npm install -g supabase"
+        print_info "For GitHub Actions, ensure the installation step completed successfully"
+        print_info "For local development, install with: curl -fsSL https://supabase.com/install.sh | sh"
         exit 1
     fi
     
+    # Print version for debugging
+    local version=$(supabase --version 2>&1 || echo "unknown")
+    print_info "Supabase CLI version: $version"
     print_success "Supabase CLI found"
 }
 

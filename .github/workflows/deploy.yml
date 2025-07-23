@@ -7,6 +7,9 @@
 # - SUPABASE_ACCESS_TOKEN: From Supabase Dashboard → Settings → Access Tokens
 # - SUPABASE_PROJECT_REF: Your project reference ID from project URL
 #
+# The workflow installs Supabase CLI using the official binary installer
+# which is the recommended method for CI/CD environments.
+#
 # For setup instructions, see: docs/deployment/GITHUB-SECRETS-SETUP.md
 
 name: Deploy to Production
@@ -43,8 +46,53 @@ jobs:
       
     - name: Install Supabase CLI
       run: |
-        npm install -g supabase
+        # Install Supabase CLI using the recommended binary method for CI/CD
+        echo "📦 Installing Supabase CLI..."
+        
+        # Try the official installer first
+        if curl -fsSL https://supabase.com/install.sh | sh; then
+          echo "✅ Primary installation method succeeded"
+        else
+          echo "⚠️ Primary installation failed, trying alternative method..."
+          
+          # Alternative: Download directly from GitHub releases
+          SUPABASE_VERSION=$(curl -s https://api.github.com/repos/supabase/cli/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
+          echo "📦 Downloading Supabase CLI version $SUPABASE_VERSION..."
+          
+          wget -O supabase-cli.tar.gz "https://github.com/supabase/cli/releases/download/${SUPABASE_VERSION}/supabase_linux_amd64.tar.gz"
+          tar -xzf supabase-cli.tar.gz
+          mkdir -p "$HOME/.local/bin"
+          mv supabase "$HOME/.local/bin/supabase"
+          chmod +x "$HOME/.local/bin/supabase"
+          rm supabase-cli.tar.gz
+          
+          echo "✅ Alternative installation method succeeded"
+        fi
+        
+        # Add to PATH for this job
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        
+        # Verify the binary exists
+        if [ -f "$HOME/.local/bin/supabase" ]; then
+          echo "✅ Supabase CLI binary installed successfully"
+          ls -la "$HOME/.local/bin/supabase"
+        else
+          echo "❌ Supabase CLI binary not found after installation"
+          echo "Contents of $HOME/.local/bin:"
+          ls -la "$HOME/.local/bin/" || echo "Directory does not exist"
+          exit 1
+        fi
+        
+    - name: Verify Supabase CLI installation
+      run: |
+        # Wait a moment for PATH to be updated
+        sleep 2
+        
+        # Verify CLI is accessible and working
+        echo "🔍 Verifying Supabase CLI installation..."
+        which supabase
         supabase --version
+        echo "✅ Supabase CLI verified and ready"
         
     - name: Deploy database migrations
       env:
