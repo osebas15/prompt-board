@@ -1,7 +1,7 @@
 # Scripts Directory
 
 This directory contains modular scripts for setting up the Prompt Board project.
-
+ 
 ## Scripts Overview
 
 ### Core Scripts
