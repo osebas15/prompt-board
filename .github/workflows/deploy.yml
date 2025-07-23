@@ -340,7 +340,7 @@ jobs:
         
         chmod +x ./scripts/deploy-migrations.sh
         ./scripts/deploy-migrations.sh
-        
+         
     - name: Notify deployment success
       if: success()
       run: |
