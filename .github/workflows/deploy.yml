@@ -4,11 +4,13 @@
 # when code is pushed to the main branch.
 #
 # Required GitHub Secrets (in production environment):
-# - SUPABASE_ACCESS_TOKEN: From Supabase Dashboard → Settings → Access Tokens
+# - SUPABASE_ACCESS_TOKEN: From Supabase Dashboard → Settings → Access Tokens (starts with sbp_)
 # - SUPABASE_PROJECT_REF: Your project reference ID from project URL
+# - SUPABASE_DB_PASSWORD: Database password from Supabase Dashboard → Settings → Database
 #
-# The workflow uses the official Supabase CLI method recommended for CI/CD.
-# This is more reliable and secure than direct database connections.
+# The workflow uses the 2025 recommended approach with dual authentication:
+# - Access token for Management API operations (linking, authentication)
+# - Database password for direct database operations (migrations)
 #
 # For setup instructions, see: docs/deployment/GITHUB-SECRETS-SETUP.md
 
@@ -246,19 +248,26 @@ jobs:
         supabase --version
         echo "✅ Supabase CLI verified and ready"
         
-    - name: Deploy database migrations (Modern CLI Method)
+    - name: Deploy database migrations (Modern CLI Method with Dual Auth)
       env:
         SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+        SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       run: |
         echo "🚀 Starting database migration deployment..."
         
-        # Validate secrets
-        if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_REF" ]; then
+        # Validate required secrets
+        if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_REF" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
           echo "❌ Missing required secrets"
-          echo "Required: SUPABASE_ACCESS_TOKEN (sbp_...) and SUPABASE_PROJECT_REF"
-          echo "💡 Create access token at: https://supabase.com/dashboard/account/tokens"
-          echo "💡 Token needs 'Database Admin' scope for migrations"
+          echo "Required secrets:"
+          echo "  • SUPABASE_ACCESS_TOKEN (sbp_...) - for Management API operations"
+          echo "  • SUPABASE_PROJECT_REF - project reference ID" 
+          echo "  • SUPABASE_DB_PASSWORD - database password for migrations"
+          echo ""
+          echo "💡 Setup instructions:"
+          echo "  • Access token: https://supabase.com/dashboard/account/tokens"
+          echo "  • Project ref: Found in project URL or dashboard"
+          echo "  • DB password: Project Settings → Database → Database password"
           exit 1
         fi
         
@@ -266,18 +275,14 @@ jobs:
         if [[ ! "$SUPABASE_ACCESS_TOKEN" =~ ^sbp_ ]]; then
           echo "❌ Invalid access token format"
           echo "Expected format: sbp_xxxxxxxxxxxxxxxx"
-          echo "💡 Ensure you're using an ACCESS TOKEN, not a service role key"
+          echo "💡 Ensure you're using an ACCESS TOKEN (sbp_*), not a service role key (eyJ*)"
           exit 1
         fi
         
-        echo "✅ Environment configured"
+        echo "✅ Environment configured with dual authentication"
         echo "📋 Project: $SUPABASE_PROJECT_REF"
-        echo "🔑 Token format: ${SUPABASE_ACCESS_TOKEN:0:8}..."
-        
-        # Set additional CLI environment variables for better authentication
-        export SUPABASE_AUTH_TOKEN="$SUPABASE_ACCESS_TOKEN"
-        export SUPABASE_PROJECT_ID="$SUPABASE_PROJECT_REF"
-        echo "🔧 Additional environment variables set for CLI"
+        echo "🔑 Access Token: ${SUPABASE_ACCESS_TOKEN:0:8}..."
+        echo "🔒 DB Password: [HIDDEN]"
         
         # Check migrations exist
         if [ ! -d "supabase/migrations" ]; then
@@ -291,96 +296,78 @@ jobs:
         
         if [ "$MIGRATION_COUNT" -eq 0 ]; then
           echo "❌ No migration files found"
-          echo "� Directory contents:"
+          echo "📂 Directory contents:"
           ls -la supabase/migrations/ || echo "Directory is empty"
           exit 1
         fi
         
         # List migrations for visibility
-        echo "� Migration files to deploy:"
+        echo "📋 Migration files to deploy:"
         ls -1 supabase/migrations/*.sql | sort | sed 's/^/  ✓ /'
         
-        # First check CLI authentication status
-        echo "🔍 Checking CLI authentication..."
+        # Step 1: Authenticate with Management API using access token
+        echo "� Step 1: Authenticating with Management API..."
         if ! supabase projects list --debug 2>&1; then
-          echo "❌ CLI authentication failed"
-          echo "💡 This usually means the access token is invalid or lacks permissions"
+          echo "❌ Management API authentication failed"
+          echo "💡 Check that SUPABASE_ACCESS_TOKEN is valid and has correct permissions"
           exit 1
         fi
-        echo "✅ CLI authentication verified"
+        echo "✅ Management API authentication successful"
         
-        # Link project with debug output
-        echo "� Linking to project with debug output..."
+        # Step 2: Link project (this uses access token for API operations)
+        echo "🔗 Step 2: Linking to project..."
         if ! supabase link --project-ref "$SUPABASE_PROJECT_REF" --debug; then
           echo "❌ Failed to link project"
           echo ""
-          echo "� Common causes:"
-          echo "1. Invalid project reference: $SUPABASE_PROJECT_REF"
-          echo "2. Access token lacks 'Database Admin' permissions"
-          echo "3. Token is expired or invalid"
-          echo "4. Project doesn't exist or was deleted"
+          echo "🔍 Common causes:"
+          echo "  • Invalid project reference: $SUPABASE_PROJECT_REF"
+          echo "  • Access token lacks required permissions"
+          echo "  • Project doesn't exist or was deleted"
           echo ""
           echo "💡 Verify project exists: https://supabase.com/dashboard/project/$SUPABASE_PROJECT_REF"
-          echo "💡 Recreate token with 'Database Admin' scope"
           exit 1
         fi
         echo "✅ Successfully linked to project"
         
-        # Deploy migrations with debug output and non-interactive mode
-        echo "📤 Deploying migrations with debug output..."
+        # Step 3: Deploy migrations (this uses both access token AND database password)
+        echo "📤 Step 3: Deploying migrations with dual authentication..."
+        echo "💡 Using access token for API operations and database password for migrations"
         
-        # Set additional environment variables for non-interactive mode
-        export SUPABASE_DB_PASSWORD=""
-        export CI=true
-        
-        if ! supabase db push --debug --no-interaction; then
+        # According to 2025 docs, SUPABASE_DB_PASSWORD env var is used automatically
+        # The CLI will use the access token for linking and the DB password for migrations
+        if ! supabase db push --debug --linked; then
           echo "❌ Migration deployment failed"
           echo ""
           echo "🔍 Debug information:"
-          echo "- CLI Version: $(supabase --version)"
-          echo "- Project linked: $(supabase projects list 2>/dev/null | grep -q "$SUPABASE_PROJECT_REF" && echo "Yes" || echo "No")"
-          echo "- Config file exists: $([ -f supabase/config.toml ] && echo "Yes" || echo "No")"
-          
-          echo ""
-          echo "🔍 Alternative: Try using Management API approach..."
-          # Alternative approach using the Management API
-          echo "📡 Attempting direct API-based migration deployment..."
-          
-          # Get project details via API
-          PROJECT_INFO=$(curl -s -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF" || echo "API call failed")
-          
-          if [[ "$PROJECT_INFO" == *"API call failed"* ]] || [[ "$PROJECT_INFO" == *"error"* ]]; then
-            echo "❌ Cannot access project via API"
-            echo "Response: $PROJECT_INFO"
-          else
-            echo "✅ API access confirmed"
-            echo "Project name: $(echo "$PROJECT_INFO" | jq -r '.name // "Unknown"' 2>/dev/null || echo "Could not parse")"
-          fi
-          
+          echo "  • CLI Version: $(supabase --version)"
+          echo "  • Project linked: $(supabase projects list 2>/dev/null | grep -q "$SUPABASE_PROJECT_REF" && echo "Yes" || echo "No")"
+          echo "  • Config file: $([ -f supabase/config.toml ] && echo "Exists" || echo "Missing")"
+          echo "  • Migration count: $MIGRATION_COUNT files"
           echo ""
           echo "🔍 Troubleshooting steps:"
-          echo "1. Check migration syntax with: supabase migration list"
-          echo "2. Verify migration dependencies and order"
-          echo "3. Check for conflicting schema changes"
-          echo "4. Review logs in Supabase Dashboard → Logs"
+          echo "  1. Verify database password is correct"
+          echo "  2. Check migration syntax: supabase migration list"
+          echo "  3. Verify no conflicting schema changes"
+          echo "  4. Review logs in Supabase Dashboard → Logs"
+          echo "  5. Test locally: supabase start && supabase db reset"
           echo ""
-          echo "💡 Run locally first: supabase start && supabase db reset"
-          
-          # Show migration status for debugging
-          echo ""
-          echo "📊 Migration status with debug output:"
+          echo "📊 Migration status:"
           supabase migration list --debug || echo "Could not retrieve migration status"
           
           exit 1
         fi
         
-        echo "🎉 Successfully deployed all migrations!"
-        echo "📊 Deployment complete - check your database schema in Supabase Dashboard"
+        echo "🎉 Successfully deployed all migrations using 2025 best practices!"
+        echo "✅ Dual authentication approach completed:"
+        echo "  • Management API operations: Access token"
+        echo "  • Database operations: Database password"
+        echo "📊 Check your database schema in Supabase Dashboard"
          
     - name: Notify deployment success
       if: success()
       run: |
-        echo "✅ Deployment completed successfully!"
-        echo "- Database migrations applied"
-        echo "- Application ready for production"
+        echo "✅ Deployment completed successfully using 2025 best practices!"
+        echo "  • Database migrations applied with dual authentication"
+        echo "  • Access token used for Management API operations"
+        echo "  • Database password used for migration operations"
+        echo "  • Application ready for production"
