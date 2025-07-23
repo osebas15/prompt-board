@@ -51,13 +51,14 @@ jobs:
           echo "✅ Git repository confirmed"
           
           # Force ensure supabase/migrations is available
-          if ! git ls-tree HEAD | grep -q "supabase/migrations"; then
-            echo "❌ supabase/migrations not found in git tree"
+          # Check if migrations files are actually present (we saw them in find output)
+          if [ -z "$(find . -name "*.sql" -path "*/supabase/migrations/*" 2>/dev/null)" ]; then
+            echo "❌ supabase/migrations SQL files not found on filesystem"
             echo "Git tree contents:"
             git ls-tree -r HEAD | grep -E "(supabase|migrations)" || echo "No supabase/migrations entries"
             exit 1
           else
-            echo "✅ supabase/migrations found in git tree"
+            echo "✅ supabase/migrations SQL files found on filesystem"
             
             # Force checkout the specific directory if it's missing
             if [ ! -d "supabase/migrations" ]; then
