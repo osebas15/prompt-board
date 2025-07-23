@@ -3,7 +3,7 @@
 A modern React + TypeScript + Vite application with comprehensive deployment and security tooling.
 
 ## 🔒 Security Status
-
+ 
 **Production Security**: ✅ **0 vulnerabilities**  
 **Development Dependencies**: ⚠️ 11 vulnerabilities (all low-risk, dev-only)  
 **Last Security Audit**: Run `npm run audit:security` for current status
