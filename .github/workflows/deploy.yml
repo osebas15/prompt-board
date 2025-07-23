@@ -119,13 +119,24 @@ jobs:
         rm -f supabase supabase-cli.tar.gz 2>/dev/null || true
         rm -rf temp-supabase 2>/dev/null || true
         
-        # Get the latest release version for logging
+        # Get the latest release version with better error handling
         echo "🔍 Getting latest Supabase CLI version..."
-        SUPABASE_VERSION=$(curl -s https://api.github.com/repos/supabase/cli/releases/latest | jq -r '.tag_name')
-        echo "📦 Downloading Supabase CLI version $SUPABASE_VERSION..."
+        SUPABASE_VERSION=$(curl -s https://api.github.com/repos/supabase/cli/releases/latest | jq -r '.tag_name // empty')
+        
+        # Fallback to known working version if API fails
+        if [ -z "$SUPABASE_VERSION" ] || [ "$SUPABASE_VERSION" = "null" ]; then
+          echo "⚠️  GitHub API failed to return version, using fallback version..."
+          SUPABASE_VERSION="v2.31.8"
+          echo "📦 Using fallback Supabase CLI version: $SUPABASE_VERSION"
+        else
+          echo "📦 Using latest Supabase CLI version: $SUPABASE_VERSION"
+        fi
         
         # Download and extract the binary (using the correct filename)
-        if wget -q -O supabase-cli.tar.gz "https://github.com/supabase/cli/releases/download/${SUPABASE_VERSION}/supabase_linux_amd64.tar.gz"; then
+        DOWNLOAD_URL="https://github.com/supabase/cli/releases/download/${SUPABASE_VERSION}/supabase_linux_amd64.tar.gz"
+        echo "🔗 Download URL: $DOWNLOAD_URL"
+        
+        if wget -q -O supabase-cli.tar.gz "$DOWNLOAD_URL"; then
           echo "✅ Download successful"
           
           # Extract to a temporary directory to avoid conflicts
@@ -151,9 +162,18 @@ jobs:
           rm -rf supabase-cli.tar.gz temp-supabase supabase 2>/dev/null || true
           echo "✅ Installation completed"
         else
-          echo "❌ Failed to download Supabase CLI"
-          echo "Available assets for version $SUPABASE_VERSION:"
-          curl -s https://api.github.com/repos/supabase/cli/releases/latest | jq -r '.assets[].name' | grep -E '\.(tar\.gz|zip)' || echo "No tar.gz or zip assets found"
+          echo "❌ Failed to download Supabase CLI from: $DOWNLOAD_URL"
+          
+          # Try to get available versions for debugging
+          echo "🔍 Checking available releases..."
+          RELEASES_INFO=$(curl -s https://api.github.com/repos/supabase/cli/releases/latest 2>/dev/null || echo "{}")
+          echo "API Response: $RELEASES_INFO"
+          
+          if [ "$RELEASES_INFO" != "{}" ]; then
+            echo "Available assets:"
+            echo "$RELEASES_INFO" | jq -r '.assets[]?.name // "No assets found"' 2>/dev/null || echo "Failed to parse assets"
+          fi
+          
           exit 1
         fi
         
