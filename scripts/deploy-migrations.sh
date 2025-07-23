@@ -117,13 +117,76 @@ run_migrations_service_role() {
     
     print_info "Using migrations directory: $migrations_dir"
     
-    # Construct database URL - service role key is used as the password
-    local db_url="postgresql://postgres.${SUPABASE_PROJECT_REF}:${SUPABASE_SERVICE_ROLE_KEY}@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+    # Extract project details from project ref
+    local project_ref="$SUPABASE_PROJECT_REF"
+    local host="aws-0-us-east-1.pooler.supabase.com"
+    local port="5432"
+    local database="postgres"
+    local username="postgres.${project_ref}"
     
-    # Test connection first
-    if ! psql "$db_url" -c "SELECT 1;" > /dev/null 2>&1; then
+    # Show connection details (without exposing the key)
+    print_info "🔍 Connection Details:"
+    print_info "  Host: $host"
+    print_info "  Port: $port"
+    print_info "  Database: $database"
+    print_info "  Username: $username"
+    print_info "  Service Key Length: ${#SUPABASE_SERVICE_ROLE_KEY} characters"
+    print_info "  Service Key Format: ${SUPABASE_SERVICE_ROLE_KEY:0:10}...(JWT token)"
+    
+    # Validate service role key format (should be a JWT token)
+    if [[ ! "$SUPABASE_SERVICE_ROLE_KEY" =~ ^eyJ.* ]]; then
+        print_error "Service role key format invalid - should start with 'eyJ' (JWT token)"
+        print_info "Current key starts with: '${SUPABASE_SERVICE_ROLE_KEY:0:10}'"
+        print_info "Expected format: JWT token starting with 'eyJ'"
+        print_info "Get the correct key from: Supabase Dashboard → Settings → API → service_role key"
+        return 1
+    fi
+    
+    # Construct database URL - service role key is used as the password
+    local db_url="postgresql://${username}:${SUPABASE_SERVICE_ROLE_KEY}@${host}:${port}/${database}"
+    
+    # Test basic connectivity first
+    print_info "🔄 Testing database connection..."
+    
+    # Capture the full error output
+    local connection_test_output
+    local connection_test_exit_code
+    connection_test_output=$(psql "$db_url" -c "SELECT 1;" 2>&1)
+    connection_test_exit_code=$?
+    
+    if [ $connection_test_exit_code -ne 0 ]; then
         print_error "Failed to connect to database with service role key"
-        print_info "Please verify your SUPABASE_SERVICE_ROLE_KEY is correct"
+        print_info "Connection test exit code: $connection_test_exit_code"
+        print_info "Connection error output:"
+        echo "$connection_test_output" | sed 's/^/    /'
+        
+        # Parse common error types
+        if echo "$connection_test_output" | grep -qi "authentication failed"; then
+            print_error "Authentication failed - service role key is incorrect"
+            print_info "🔑 The service role key appears to be wrong or expired"
+            print_info "📋 To fix:"
+            print_info "   1. Go to Supabase Dashboard → Settings → API"
+            print_info "   2. Copy the 'service_role' key (NOT the 'anon' key)"
+            print_info "   3. Update SUPABASE_SERVICE_ROLE_KEY in GitHub secrets"
+        elif echo "$connection_test_output" | grep -qi "could not translate host name\|host.*not found"; then
+            print_error "DNS/Network error - cannot reach Supabase servers"
+            print_info "🌐 Network connectivity issue"
+            print_info "📋 Host: $host"
+            print_info "📋 This might be a temporary network issue"
+        elif echo "$connection_test_output" | grep -qi "connection refused\|timeout"; then
+            print_error "Connection refused or timeout"
+            print_info "🔌 Cannot connect to database server"
+            print_info "📋 Port: $port"
+            print_info "📋 This might be a firewall or server issue"
+        elif echo "$connection_test_output" | grep -qi "role.*does not exist"; then
+            print_error "Database role/user does not exist"
+            print_info "👤 Username issue: $username"
+            print_info "📋 Check if project ref is correct: $project_ref"
+        else
+            print_error "Unknown database connection error"
+            print_info "📋 Raw error details above"
+        fi
+        
         return 1
     fi
     
