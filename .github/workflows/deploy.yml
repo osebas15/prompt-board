@@ -274,6 +274,11 @@ jobs:
         echo "📋 Project: $SUPABASE_PROJECT_REF"
         echo "🔑 Token format: ${SUPABASE_ACCESS_TOKEN:0:8}..."
         
+        # Set additional CLI environment variables for better authentication
+        export SUPABASE_AUTH_TOKEN="$SUPABASE_ACCESS_TOKEN"
+        export SUPABASE_PROJECT_ID="$SUPABASE_PROJECT_REF"
+        echo "🔧 Additional environment variables set for CLI"
+        
         # Check migrations exist
         if [ ! -d "supabase/migrations" ]; then
           echo "❌ No migrations directory found"
@@ -295,9 +300,18 @@ jobs:
         echo "� Migration files to deploy:"
         ls -1 supabase/migrations/*.sql | sort | sed 's/^/  ✓ /'
         
-        # Link project (CLI automatically uses SUPABASE_ACCESS_TOKEN environment variable)
-        echo "� Linking to project..."
-        if ! supabase link --project-ref "$SUPABASE_PROJECT_REF"; then
+        # First check CLI authentication status
+        echo "🔍 Checking CLI authentication..."
+        if ! supabase projects list --debug 2>&1; then
+          echo "❌ CLI authentication failed"
+          echo "💡 This usually means the access token is invalid or lacks permissions"
+          exit 1
+        fi
+        echo "✅ CLI authentication verified"
+        
+        # Link project with debug output
+        echo "� Linking to project with debug output..."
+        if ! supabase link --project-ref "$SUPABASE_PROJECT_REF" --debug; then
           echo "❌ Failed to link project"
           echo ""
           echo "� Common causes:"
@@ -312,10 +326,38 @@ jobs:
         fi
         echo "✅ Successfully linked to project"
         
-        # Deploy migrations (Modern method - CLI uses environment token automatically)
-        echo "📤 Deploying migrations..."
-        if ! supabase db push; then
+        # Deploy migrations with debug output and non-interactive mode
+        echo "📤 Deploying migrations with debug output..."
+        
+        # Set additional environment variables for non-interactive mode
+        export SUPABASE_DB_PASSWORD=""
+        export CI=true
+        
+        if ! supabase db push --debug --no-interaction; then
           echo "❌ Migration deployment failed"
+          echo ""
+          echo "🔍 Debug information:"
+          echo "- CLI Version: $(supabase --version)"
+          echo "- Project linked: $(supabase projects list 2>/dev/null | grep -q "$SUPABASE_PROJECT_REF" && echo "Yes" || echo "No")"
+          echo "- Config file exists: $([ -f supabase/config.toml ] && echo "Yes" || echo "No")"
+          
+          echo ""
+          echo "🔍 Alternative: Try using Management API approach..."
+          # Alternative approach using the Management API
+          echo "📡 Attempting direct API-based migration deployment..."
+          
+          # Get project details via API
+          PROJECT_INFO=$(curl -s -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF" || echo "API call failed")
+          
+          if [[ "$PROJECT_INFO" == *"API call failed"* ]] || [[ "$PROJECT_INFO" == *"error"* ]]; then
+            echo "❌ Cannot access project via API"
+            echo "Response: $PROJECT_INFO"
+          else
+            echo "✅ API access confirmed"
+            echo "Project name: $(echo "$PROJECT_INFO" | jq -r '.name // "Unknown"' 2>/dev/null || echo "Could not parse")"
+          fi
+          
           echo ""
           echo "🔍 Troubleshooting steps:"
           echo "1. Check migration syntax with: supabase migration list"
@@ -327,8 +369,8 @@ jobs:
           
           # Show migration status for debugging
           echo ""
-          echo "📊 Migration status:"
-          supabase migration list || echo "Could not retrieve migration status"
+          echo "📊 Migration status with debug output:"
+          supabase migration list --debug || echo "Could not retrieve migration status"
           
           exit 1
         fi
