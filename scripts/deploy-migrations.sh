@@ -23,15 +23,29 @@ validate_env() {
     
     if [ -z "$SUPABASE_PROJECT_REF" ]; then
         print_error "SUPABASE_PROJECT_REF is required"
+        print_info "Find your project ref in your Supabase dashboard URL:"
+        print_info "https://supabase.com/dashboard/project/YOUR_PROJECT_REF"
+        exit 1
+    fi
+    
+    # Validate project ref format (should be 20 alphanumeric characters)
+    if [[ ! "$SUPABASE_PROJECT_REF" =~ ^[a-zA-Z0-9]{20}$ ]]; then
+        print_error "Invalid SUPABASE_PROJECT_REF format: '$SUPABASE_PROJECT_REF'"
+        print_info "Project ref should be exactly 20 alphanumeric characters"
+        print_info "Example: abcdefghijklmnopqrst"
+        print_info "Find your project ref in your Supabase dashboard URL:"
+        print_info "https://supabase.com/dashboard/project/YOUR_PROJECT_REF"
         exit 1
     fi
     
     if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
         print_error "SUPABASE_ACCESS_TOKEN is required"
+        print_info "Generate a token at: https://supabase.com/dashboard/account/tokens"
         exit 1
     fi
     
     print_success "Environment variables validated"
+    print_info "Project ref: ${SUPABASE_PROJECT_REF:0:4}...${SUPABASE_PROJECT_REF: -4} (masked)"
 }
 
 # Check if supabase CLI is installed

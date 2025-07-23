@@ -132,6 +132,23 @@ jobs:
         SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       run: |
         echo "🚀 Starting database migration deployment..."
+        
+        # Validate secrets are available (without exposing values)
+        if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+          echo "❌ SUPABASE_ACCESS_TOKEN secret is not set"
+          echo "Please add this secret to your GitHub repository settings"
+          exit 1
+        fi
+        
+        if [ -z "$SUPABASE_PROJECT_REF" ]; then
+          echo "❌ SUPABASE_PROJECT_REF secret is not set"
+          echo "Please add this secret to your GitHub repository settings"
+          exit 1
+        fi
+        
+        echo "✅ Required secrets are available"
+        echo "📋 Project ref format: ${#SUPABASE_PROJECT_REF} characters"
+        
         chmod +x ./scripts/deploy-migrations.sh
         ./scripts/deploy-migrations.sh
         
