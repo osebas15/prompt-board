@@ -36,5 +36,6 @@ coverage/
 supabase/.branches/
 supabase/.temp/
 supabase/config.toml
+# Explicitly include migrations and seed
 !supabase/migrations/
 !supabase/seed.sql

@@ -31,6 +31,8 @@ jobs:
       with:
         # Ensure we get the full repository including all subdirectories
         fetch-depth: 0
+        # Force clean checkout to avoid conflicts
+        clean: true
         
     - name: Debug repository structure
       run: |
@@ -49,6 +51,39 @@ jobs:
             echo "📁 Found nested supabase directory"
             ls -la prompt-board/supabase/
           fi
+        fi
+        
+        # Force check git status
+        echo "🔍 Git repository status:"
+        git status
+        git ls-files | grep migrations || echo "No migrations files tracked by git"
+        
+    - name: Restore migrations if missing
+      run: |
+        if [ ! -d "supabase/migrations" ] || [ -z "$(ls -A supabase/migrations 2>/dev/null)" ]; then
+          echo "❌ Migrations directory missing or empty, attempting to restore..."
+          
+          # Force restore from git
+          git checkout HEAD -- supabase/migrations/ || echo "Git checkout failed"
+          
+          # If that fails, try reset
+          if [ ! -d "supabase/migrations" ]; then
+            echo "🔧 Trying git reset to restore files..."
+            git reset --hard HEAD
+          fi
+          
+          # Final check
+          if [ -d "supabase/migrations" ] && [ -n "$(ls -A supabase/migrations 2>/dev/null)" ]; then
+            echo "✅ Migrations directory restored successfully"
+            ls -la supabase/migrations/
+          else
+            echo "❌ Failed to restore migrations directory"
+            echo "This might be a repository structure issue"
+            exit 1
+          fi
+        else
+          echo "✅ Migrations directory exists and contains files"
+          ls -la supabase/migrations/
         fi
       
     - name: Setup Node.js
