@@ -98,6 +98,25 @@ link_project() {
 run_migrations_service_role() {
     print_info "Applying migrations using service role key..."
     
+    # Find the migrations directory - handle different working directories
+    local migrations_dir=""
+    if [ -d "supabase/migrations" ]; then
+        migrations_dir="supabase/migrations"
+    elif [ -d "./supabase/migrations" ]; then
+        migrations_dir="./supabase/migrations"
+    elif [ -d "../supabase/migrations" ]; then
+        migrations_dir="../supabase/migrations"
+    else
+        print_error "Cannot find migrations directory"
+        print_info "Current working directory: $(pwd)"
+        print_info "Looking for: supabase/migrations/"
+        print_info "Available directories:"
+        ls -la . | grep -E '^d' || echo "No directories found"
+        return 1
+    fi
+    
+    print_info "Using migrations directory: $migrations_dir"
+    
     # Construct database URL - service role key is used as the password
     local db_url="postgresql://postgres.${SUPABASE_PROJECT_REF}:${SUPABASE_SERVICE_ROLE_KEY}@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
     
@@ -112,7 +131,7 @@ run_migrations_service_role() {
     
     # Apply each migration file in order
     local applied_count=0
-    for migration_file in supabase/migrations/*.sql; do
+    for migration_file in "$migrations_dir"/*.sql; do
         if [ -f "$migration_file" ]; then
             local filename=$(basename "$migration_file")
             print_info "Applying migration: $filename"
@@ -143,15 +162,46 @@ run_migrations_service_role() {
 run_migrations() {
     print_info "Applying database migrations..."
     
-    # List migration files for verification
+    # Find the migrations directory - handle different working directories
+    local migrations_dir=""
     if [ -d "supabase/migrations" ]; then
-        migration_count=$(ls -1 supabase/migrations/*.sql 2>/dev/null | wc -l)
+        migrations_dir="supabase/migrations"
+    elif [ -d "./supabase/migrations" ]; then
+        migrations_dir="./supabase/migrations"
+    elif [ -d "../supabase/migrations" ]; then
+        migrations_dir="../supabase/migrations"
+    else
+        print_error "Cannot find migrations directory"
+        print_info "Current working directory: $(pwd)"
+        print_info "Looking for: supabase/migrations/"
+        print_info "Available directories:"
+        ls -la . | grep -E '^d' || echo "No directories found"
+        if [ -d "supabase" ]; then
+            print_info "Contents of supabase directory:"
+            ls -la supabase/ || echo "Cannot list supabase contents"
+        fi
+        return 1
+    fi
+    
+    print_info "Using migrations directory: $migrations_dir"
+    
+    # List migration files for verification
+    if [ -d "$migrations_dir" ]; then
+        migration_count=$(ls -1 "$migrations_dir"/*.sql 2>/dev/null | wc -l)
         print_info "Found $migration_count migration files"
         
         if [ "$migration_count" -eq 0 ]; then
             print_warning "No migration files found - nothing to deploy"
             return 0
         fi
+        
+        # List the migration files for debugging
+        print_info "Migration files:"
+        for file in "$migrations_dir"/*.sql; do
+            if [ -f "$file" ]; then
+                print_info "  - $(basename "$file")"
+            fi
+        done
     else
         print_warning "No migrations directory found - nothing to deploy"
         return 0
@@ -226,6 +276,18 @@ run_migrations() {
 # Main execution
 main() {
     print_info "🚀 Starting Supabase migration deployment"
+    echo
+    
+    # Debug information
+    print_info "🔍 Environment Information:"
+    print_info "Current working directory: $(pwd)"
+    print_info "Script location: $0"
+    print_info "Available files in current directory:"
+    ls -la . | head -10
+    if [ -d "supabase" ]; then
+        print_info "Contents of supabase directory:"
+        ls -la supabase/
+    fi
     echo
     
     validate_env
