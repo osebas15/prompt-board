@@ -27,63 +27,58 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v3
       with:
-        # Ensure we get the full repository including all subdirectories
+        # Use v3 which has more stable behavior
         fetch-depth: 0
-        # Force clean checkout to avoid conflicts
-        clean: true
         
-    - name: Debug repository structure
+    - name: Force ensure migrations directory exists
       run: |
-        echo "📍 Repository checkout completed"
-        echo "📂 Root directory contents:"
-        ls -la
-        echo "🔍 Looking for migrations directory..."
+        echo "🔧 Verifying repository checkout and structure..."
+        
+        # Show current directory and git status
+        echo "📍 Working directory: $(pwd)"
+        echo "🔍 Git status:"
+        git status --porcelain || echo "Git status failed"
+        
+        # List all files to see what was actually checked out
+        echo "📂 All files in repository:"
+        find . -name "*.sql" 2>/dev/null || echo "No SQL files found"
         find . -name "migrations" -type d 2>/dev/null || echo "No migrations directories found"
-        find . -name "supabase" -type d 2>/dev/null || echo "No supabase directories found"
         
-        # Check if we have the nested structure
-        if [ -d "prompt-board" ]; then
-          echo "📁 Found nested prompt-board directory"
-          ls -la prompt-board/
-          if [ -d "prompt-board/supabase" ]; then
-            echo "📁 Found nested supabase directory"
-            ls -la prompt-board/supabase/
-          fi
-        fi
-        
-        # Force check git status
-        echo "🔍 Git repository status:"
-        git status
-        git ls-files | grep migrations || echo "No migrations files tracked by git"
-        
-    - name: Restore migrations if missing
-      run: |
-        if [ ! -d "supabase/migrations" ] || [ -z "$(ls -A supabase/migrations 2>/dev/null)" ]; then
-          echo "❌ Migrations directory missing or empty, attempting to restore..."
+        # Explicit check for the supabase directory
+        if [ -d ".git" ]; then
+          echo "✅ Git repository confirmed"
           
-          # Force restore from git
-          git checkout HEAD -- supabase/migrations/ || echo "Git checkout failed"
-          
-          # If that fails, try reset
-          if [ ! -d "supabase/migrations" ]; then
-            echo "🔧 Trying git reset to restore files..."
-            git reset --hard HEAD
-          fi
-          
-          # Final check
-          if [ -d "supabase/migrations" ] && [ -n "$(ls -A supabase/migrations 2>/dev/null)" ]; then
-            echo "✅ Migrations directory restored successfully"
-            ls -la supabase/migrations/
-          else
-            echo "❌ Failed to restore migrations directory"
-            echo "This might be a repository structure issue"
+          # Force ensure supabase/migrations is available
+          if ! git ls-tree HEAD | grep -q "supabase/migrations"; then
+            echo "❌ supabase/migrations not found in git tree"
+            echo "Git tree contents:"
+            git ls-tree -r HEAD | grep -E "(supabase|migrations)" || echo "No supabase/migrations entries"
             exit 1
+          else
+            echo "✅ supabase/migrations found in git tree"
+            
+            # Force checkout the specific directory if it's missing
+            if [ ! -d "supabase/migrations" ]; then
+              echo "� Force restoring supabase/migrations from git..."
+              git checkout HEAD -- supabase/ || echo "Checkout failed"
+              
+              # If still missing, this is a serious issue
+              if [ ! -d "supabase/migrations" ]; then
+                echo "❌ Critical: Cannot restore supabase/migrations"
+                echo "Available supabase files:"
+                git ls-tree -r HEAD | grep supabase || echo "No supabase files in git"
+                exit 1
+              fi
+            fi
+            
+            echo "✅ supabase/migrations directory confirmed"
+            ls -la supabase/migrations/
           fi
         else
-          echo "✅ Migrations directory exists and contains files"
-          ls -la supabase/migrations/
+          echo "❌ Not a git repository - checkout failed"
+          exit 1
         fi
       
     - name: Setup Node.js
