@@ -31,5 +31,10 @@ coverage/
 *.sln
 *.sw?
 
-# Supabase
-.supabase
+# Supabase local development files (but NOT the migrations directory)
+.supabase/
+supabase/.branches/
+supabase/.temp/
+supabase/config.toml
+!supabase/migrations/
+!supabase/seed.sql
