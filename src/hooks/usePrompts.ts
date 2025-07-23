@@ -28,8 +28,8 @@ type UsePromptOptions = Omit<UseQueryOptions<Prompt | null, DatabaseError>, 'que
 type UseSearchPromptsOptions = Omit<UseQueryOptions<Prompt[], DatabaseError>, 'queryKey' | 'queryFn'>
 
 type UseCreatePromptOptions = Omit<UseMutationOptions<Prompt, DatabaseError, PromptInsert>, 'mutationFn'>
-type UseUpdatePromptOptions = Omit<UseMutationOptions<Prompt, DatabaseError, { id: string; data: PromptUpdate }>, 'mutationFn'>
-type UseDeletePromptOptions = Omit<UseMutationOptions<void, DatabaseError, string>, 'mutationFn'>
+type UseUpdatePromptOptions = Omit<UseMutationOptions<Prompt, DatabaseError, { id: string; data: PromptUpdate }, { previousPrompt: Prompt | undefined }>, 'mutationFn'>
+type UseDeletePromptOptions = Omit<UseMutationOptions<void, DatabaseError, string, { previousPrompt: Prompt | undefined }>, 'mutationFn'>
 
 // React Query Hooks
 export function usePrompts(
@@ -135,7 +135,7 @@ export function useUpdatePrompt(
 ) {
   const queryClient = useQueryClient()
 
-  return useMutation({
+  return useMutation<Prompt, DatabaseError, { id: string; data: PromptUpdate }, { previousPrompt: Prompt | undefined }>({
     mutationFn: async ({ id, data }: { id: string; data: PromptUpdate }) => {
       const result = await dbClient.updatePrompt(id, data)
       if (result.error) {
@@ -143,7 +143,7 @@ export function useUpdatePrompt(
       }
       return result.data!
     },
-    onMutate: async ({ id, data }) => {
+    onMutate: async ({ id, data }): Promise<{ previousPrompt: Prompt | undefined }> => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: promptKeys.detail(id) })
 
@@ -205,14 +205,14 @@ export function useDeletePrompt(
 ) {
   const queryClient = useQueryClient()
 
-  return useMutation({
+  return useMutation<void, DatabaseError, string, { previousPrompt: Prompt | undefined }>({
     mutationFn: async (id: string) => {
       const result = await dbClient.deletePrompt(id)
       if (result.error) {
         throw result.error
       }
     },
-    onMutate: async (id) => {
+    onMutate: async (id): Promise<{ previousPrompt: Prompt | undefined }> => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: promptKeys.detail(id) })
 
