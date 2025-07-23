@@ -58,6 +58,10 @@ jobs:
         # Create the bin directory
         mkdir -p "$HOME/.local/bin"
         
+        # Clean any existing supabase files to avoid conflicts
+        rm -f supabase supabase-cli.tar.gz 2>/dev/null || true
+        rm -rf temp-supabase 2>/dev/null || true
+        
         # Get the latest release version for logging
         echo "🔍 Getting latest Supabase CLI version..."
         SUPABASE_VERSION=$(curl -s https://api.github.com/repos/supabase/cli/releases/latest | jq -r '.tag_name')
@@ -66,10 +70,28 @@ jobs:
         # Download and extract the binary (using the correct filename)
         if wget -q -O supabase-cli.tar.gz "https://github.com/supabase/cli/releases/download/${SUPABASE_VERSION}/supabase_linux_amd64.tar.gz"; then
           echo "✅ Download successful"
-          tar -xzf supabase-cli.tar.gz
-          mv supabase "$HOME/.local/bin/supabase"
+          
+          # Extract to a temporary directory to avoid conflicts
+          mkdir -p temp-supabase
+          tar -xzf supabase-cli.tar.gz -C temp-supabase
+          
+          # Move the binary to the final location
+          if [ -f "temp-supabase/supabase" ]; then
+            mv temp-supabase/supabase "$HOME/.local/bin/supabase"
+          elif [ -f "supabase" ]; then
+            # Fallback: if extracted to current directory
+            mv supabase "$HOME/.local/bin/supabase"
+          else
+            echo "❌ Could not find supabase binary after extraction"
+            echo "Contents of temp-supabase:"
+            ls -la temp-supabase/ 2>/dev/null || echo "temp-supabase directory not found"
+            echo "Contents of current directory:"
+            ls -la . | grep supabase || echo "No supabase files found"
+            exit 1
+          fi
+          
           chmod +x "$HOME/.local/bin/supabase"
-          rm -f supabase-cli.tar.gz
+          rm -rf supabase-cli.tar.gz temp-supabase supabase 2>/dev/null || true
           echo "✅ Installation completed"
         else
           echo "❌ Failed to download Supabase CLI"
