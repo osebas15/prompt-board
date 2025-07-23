@@ -198,6 +198,48 @@ jobs:
         psql --version
         echo "✅ PostgreSQL client installed successfully"
         
+    - name: Restore supabase directory before deployment
+      run: |
+        echo "🔧 Ensuring supabase directory is available for deployment..."
+        
+        # Check current state
+        echo "📍 Current directory: $(pwd)"
+        if [ -d "supabase" ]; then
+          echo "✅ supabase directory exists"
+          if [ -d "supabase/migrations" ]; then
+            echo "✅ supabase/migrations exists with $(ls supabase/migrations/*.sql 2>/dev/null | wc -l) SQL files"
+          else
+            echo "❌ supabase/migrations missing"
+          fi
+        else
+          echo "❌ supabase directory missing entirely"
+        fi
+        
+        # Force restore from git if missing
+        if [ ! -d "supabase" ] || [ ! -d "supabase/migrations" ]; then
+          echo "🔄 Restoring supabase directory from git..."
+          
+          # Show what's in git first
+          echo "Files in git under supabase/:"
+          git ls-files | grep "^supabase/" | head -20
+          
+          # Force checkout the directory
+          git checkout HEAD -- supabase/ || {
+            echo "❌ Git checkout failed"
+            git status
+            exit 1
+          }
+        fi
+        
+        # Final verification
+        if [ -d "supabase/migrations" ]; then
+          echo "✅ supabase/migrations confirmed with files:"
+          ls -la supabase/migrations/
+        else
+          echo "❌ Still cannot access supabase/migrations after restore"
+          exit 1
+        fi
+        
     - name: Verify Supabase CLI installation
       run: |
         # Wait a moment for PATH to be updated
@@ -222,6 +264,40 @@ jobs:
         echo "📂 Directory contents:"
         ls -la
         
+        # Check if supabase directory disappeared between steps
+        echo "🔍 Checking for supabase directory specifically:"
+        if [ -d "supabase" ]; then
+          echo "✅ supabase directory exists"
+          ls -la supabase/
+          if [ -d "supabase/migrations" ]; then
+            echo "✅ supabase/migrations exists"
+            ls -la supabase/migrations/
+          else
+            echo "❌ supabase/migrations directory missing - restoring..."
+            git checkout HEAD -- supabase/migrations/ || echo "Restore failed"
+          fi
+        else
+          echo "❌ supabase directory completely missing - restoring entire supabase folder..."
+          git checkout HEAD -- supabase/ || echo "Restore failed"
+          
+          # If restore worked, show contents
+          if [ -d "supabase" ]; then
+            echo "✅ supabase directory restored"
+            ls -la supabase/
+            if [ -d "supabase/migrations" ]; then
+              echo "✅ supabase/migrations restored"
+              ls -la supabase/migrations/
+            fi
+          else
+            echo "❌ Critical: Cannot restore supabase directory"
+            echo "Git status:"
+            git status
+            echo "Available files with 'supabase' in name:"
+            find . -name "*supabase*" -o -path "*/supabase/*" 2>/dev/null || echo "No supabase files found"
+            exit 1
+          fi
+        fi
+        
         # Check for migrations directory in multiple locations
         if [ -d "supabase/migrations" ]; then
           echo "✅ Found migrations at: supabase/migrations"
@@ -232,7 +308,7 @@ jobs:
           cd prompt-board
           echo "📍 Changed working directory to: $(pwd)"
         else
-          echo "❌ Cannot find migrations directory"
+          echo "❌ Cannot find migrations directory after restore attempts"
           echo "Available directories:"
           find . -name "migrations" -type d 2>/dev/null || echo "No migrations directories found"
           exit 1
