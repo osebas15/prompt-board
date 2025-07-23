@@ -46,40 +46,50 @@ jobs:
       
     - name: Install Supabase CLI
       run: |
-        # Install Supabase CLI using the recommended binary method for CI/CD
-        echo "📦 Installing Supabase CLI..."
+        # Install Supabase CLI directly from GitHub releases (most reliable for CI/CD)
+        echo "📦 Installing Supabase CLI from GitHub releases..."
         
-        # Try the official installer first
-        if curl -fsSL https://supabase.com/install.sh | sh; then
-          echo "✅ Primary installation method succeeded"
-        else
-          echo "⚠️ Primary installation failed, trying alternative method..."
-          
-          # Alternative: Download directly from GitHub releases
-          SUPABASE_VERSION=$(curl -s https://api.github.com/repos/supabase/cli/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
-          echo "📦 Downloading Supabase CLI version $SUPABASE_VERSION..."
-          
-          wget -O supabase-cli.tar.gz "https://github.com/supabase/cli/releases/download/${SUPABASE_VERSION}/supabase_linux_amd64.tar.gz"
+        # Ensure jq is available (should be pre-installed on GitHub runners)
+        if ! command -v jq &> /dev/null; then
+          echo "Installing jq..."
+          sudo apt-get update && sudo apt-get install -y jq
+        fi
+        
+        # Create the bin directory
+        mkdir -p "$HOME/.local/bin"
+        
+        # Get the latest release version for logging
+        echo "🔍 Getting latest Supabase CLI version..."
+        SUPABASE_VERSION=$(curl -s https://api.github.com/repos/supabase/cli/releases/latest | jq -r '.tag_name')
+        echo "📦 Downloading Supabase CLI version $SUPABASE_VERSION..."
+        
+        # Download and extract the binary (using the correct filename)
+        if wget -q -O supabase-cli.tar.gz "https://github.com/supabase/cli/releases/download/${SUPABASE_VERSION}/supabase_linux_amd64.tar.gz"; then
+          echo "✅ Download successful"
           tar -xzf supabase-cli.tar.gz
-          mkdir -p "$HOME/.local/bin"
           mv supabase "$HOME/.local/bin/supabase"
           chmod +x "$HOME/.local/bin/supabase"
-          rm supabase-cli.tar.gz
-          
-          echo "✅ Alternative installation method succeeded"
+          rm -f supabase-cli.tar.gz
+          echo "✅ Installation completed"
+        else
+          echo "❌ Failed to download Supabase CLI"
+          echo "Available assets for version $SUPABASE_VERSION:"
+          curl -s https://api.github.com/repos/supabase/cli/releases/latest | jq -r '.assets[].name' | grep -E '\.(tar\.gz|zip)' || echo "No tar.gz or zip assets found"
+          exit 1
         fi
         
         # Add to PATH for this job
         echo "$HOME/.local/bin" >> $GITHUB_PATH
         
-        # Verify the binary exists
-        if [ -f "$HOME/.local/bin/supabase" ]; then
+        # Verify the binary exists and is executable
+        if [ -f "$HOME/.local/bin/supabase" ] && [ -x "$HOME/.local/bin/supabase" ]; then
           echo "✅ Supabase CLI binary installed successfully"
           ls -la "$HOME/.local/bin/supabase"
+          file "$HOME/.local/bin/supabase"
         else
-          echo "❌ Supabase CLI binary not found after installation"
+          echo "❌ Supabase CLI binary not found or not executable after installation"
           echo "Contents of $HOME/.local/bin:"
-          ls -la "$HOME/.local/bin/" || echo "Directory does not exist"
+          ls -la "$HOME/.local/bin/" 2>/dev/null || echo "Directory does not exist"
           exit 1
         fi
         

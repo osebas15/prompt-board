@@ -13,18 +13,28 @@ npm install -g supabase
 
 **Error:** `Installing Supabase CLI as a global module is not supported.`
 
-### ✅ **New Method (Recommended for CI/CD)**
+### ✅ **New Method (GitHub Actions - Recommended for CI/CD)**
 ```bash
-# Primary method - Official installer
-curl -fsSL https://supabase.com/install.sh | sh
-
-# Alternative method - Direct GitHub release download
-SUPABASE_VERSION=$(curl -s https://api.github.com/repos/supabase/cli/releases/latest | grep '"tag_name"' | sed -E 's/.*"([^"]+)".*/\1/')
+# Primary method - Direct GitHub release download (most reliable)
+SUPABASE_VERSION=$(curl -s https://api.github.com/repos/supabase/cli/releases/latest | jq -r '.tag_name')
 wget -O supabase-cli.tar.gz "https://github.com/supabase/cli/releases/download/${SUPABASE_VERSION}/supabase_linux_amd64.tar.gz"
 tar -xzf supabase-cli.tar.gz
 mkdir -p "$HOME/.local/bin"
 mv supabase "$HOME/.local/bin/supabase"
 chmod +x "$HOME/.local/bin/supabase"
+```
+
+### ❌ **Old Method (No longer works)**
+```bash
+npm install -g supabase
+```
+
+**Error:** `Installing Supabase CLI as a global module is not supported.`
+
+### ✅ **Alternative Methods (Local Development)**
+```bash
+# Official installer (may not work in all CI environments)
+curl -fsSL https://supabase.com/install.sh | sh
 ```
 
 ## Updated Files
@@ -75,6 +85,15 @@ supabase --help
 ```
 
 ## Troubleshooting
+
+### Issue: "curl: (22) The requested URL returned error: 404"
+This happened when the official install script URL (`https://supabase.com/install.sh`) was not accessible. Our workflow now uses direct GitHub releases as the primary method, which is more reliable for CI/CD.
+
+### Issue: "Primary installation method succeeded" but binary not found
+This was caused by improper error handling where the curl command failed (404) but the shell pipeline continued. Fixed by:
+1. Using direct GitHub releases instead of the install script
+2. Proper JSON parsing with `jq` instead of `grep`/`sed`
+3. Better error handling and verification steps
 
 ### CLI Not Found After Installation
 ```bash
