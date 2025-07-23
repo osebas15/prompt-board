@@ -44,12 +44,14 @@ validate_env() {
         exit 1
     fi
     
-    # Check if service role key is available (optional but recommended)
+        # Check if service role key is available (optional but deprecated for CI/CD)
     if [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-        print_info "Service role key detected - will use for direct database access"
+        print_warning "Service role key detected but CLI method is recommended for CI/CD"
+        print_info "💡 Consider using only SUPABASE_ACCESS_TOKEN for better reliability"
+        print_info "💡 See: https://supabase.com/docs/guides/cli/cicd-workflows"
         USE_SERVICE_ROLE=true
     else
-        print_info "No service role key - will use access token method"
+        print_info "Using recommended CLI method for CI/CD deployment"
         USE_SERVICE_ROLE=false
     fi
     

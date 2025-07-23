@@ -7,8 +7,8 @@
 # - SUPABASE_ACCESS_TOKEN: From Supabase Dashboard → Settings → Access Tokens
 # - SUPABASE_PROJECT_REF: Your project reference ID from project URL
 #
-# The workflow installs Supabase CLI using the official binary installer
-# which is the recommended method for CI/CD environments.
+# The workflow uses the official Supabase CLI method recommended for CI/CD.
+# This is more reliable and secure than direct database connections.
 #
 # For setup instructions, see: docs/deployment/GITHUB-SECRETS-SETUP.md
 
@@ -188,15 +188,10 @@ jobs:
           exit 1
         fi
         
-    - name: Install PostgreSQL client
+    - name: Remove PostgreSQL client installation (not needed for CLI method)
       run: |
-        echo "📦 Installing PostgreSQL client for direct database access..."
-        sudo apt-get update
-        sudo apt-get install -y postgresql-client
-        
-        # Verify installation
-        psql --version
-        echo "✅ PostgreSQL client installed successfully"
+        echo "📦 Using official Supabase CLI method - PostgreSQL client not required"
+        echo "✅ Modern best practice: CLI uses Management API instead of direct DB connections"
         
     - name: Restore supabase directory before deployment
       run: |
@@ -251,70 +246,14 @@ jobs:
         supabase --version
         echo "✅ Supabase CLI verified and ready"
         
-    - name: Deploy database migrations
+    - name: Deploy database migrations using official CLI method
       env:
         SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
-        SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       run: |
-        echo "🚀 Starting database migration deployment..."
+        echo "🚀 Starting database migration deployment using official CLI method..."
         
-        # Debug: Show current directory and structure
-        echo "📍 Current working directory: $(pwd)"
-        echo "📂 Directory contents:"
-        ls -la
-        
-        # Check if supabase directory disappeared between steps
-        echo "🔍 Checking for supabase directory specifically:"
-        if [ -d "supabase" ]; then
-          echo "✅ supabase directory exists"
-          ls -la supabase/
-          if [ -d "supabase/migrations" ]; then
-            echo "✅ supabase/migrations exists"
-            ls -la supabase/migrations/
-          else
-            echo "❌ supabase/migrations directory missing - restoring..."
-            git checkout HEAD -- supabase/migrations/ || echo "Restore failed"
-          fi
-        else
-          echo "❌ supabase directory completely missing - restoring entire supabase folder..."
-          git checkout HEAD -- supabase/ || echo "Restore failed"
-          
-          # If restore worked, show contents
-          if [ -d "supabase" ]; then
-            echo "✅ supabase directory restored"
-            ls -la supabase/
-            if [ -d "supabase/migrations" ]; then
-              echo "✅ supabase/migrations restored"
-              ls -la supabase/migrations/
-            fi
-          else
-            echo "❌ Critical: Cannot restore supabase directory"
-            echo "Git status:"
-            git status
-            echo "Available files with 'supabase' in name:"
-            find . -name "*supabase*" -o -path "*/supabase/*" 2>/dev/null || echo "No supabase files found"
-            exit 1
-          fi
-        fi
-        
-        # Check for migrations directory in multiple locations
-        if [ -d "supabase/migrations" ]; then
-          echo "✅ Found migrations at: supabase/migrations"
-          ls -la supabase/migrations/
-        elif [ -d "prompt-board/supabase/migrations" ]; then
-          echo "✅ Found migrations at: prompt-board/supabase/migrations"
-          ls -la prompt-board/supabase/migrations/
-          cd prompt-board
-          echo "📍 Changed working directory to: $(pwd)"
-        else
-          echo "❌ Cannot find migrations directory after restore attempts"
-          echo "Available directories:"
-          find . -name "migrations" -type d 2>/dev/null || echo "No migrations directories found"
-          exit 1
-        fi
-        
-        # Validate secrets are available (without exposing values)
+        # Validate required secrets are available
         if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
           echo "❌ SUPABASE_ACCESS_TOKEN secret is not set"
           echo "Please add this secret to your GitHub repository settings"
@@ -329,17 +268,24 @@ jobs:
         
         echo "✅ Required secrets are available"
         echo "📋 Project ref format: ${#SUPABASE_PROJECT_REF} characters"
+        echo "🎯 Using modern CLI method (recommended for CI/CD)"
         
-        # Check if service role key is available (recommended)
-        if [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-          echo "✅ Service role key detected - will use for direct database access"
+        # Check for migrations directory
+        if [ -d "supabase/migrations" ]; then
+          echo "✅ Found migrations directory with $(ls supabase/migrations/*.sql 2>/dev/null | wc -l) migration files"
+          ls -la supabase/migrations/
         else
-          echo "⚠️  Service role key not set - will use CLI method (less reliable)"
-          echo "💡 Recommendation: Add SUPABASE_SERVICE_ROLE_KEY secret for better reliability"
+          echo "❌ Cannot find supabase/migrations directory"
+          exit 1
         fi
         
-        chmod +x ./scripts/deploy-migrations.sh
-        ./scripts/deploy-migrations.sh
+        # Link to project using official CLI method
+        echo "🔗 Linking to Supabase project..."
+        supabase link --project-ref $SUPABASE_PROJECT_REF
+        
+        # Deploy migrations using the recommended CLI command
+        echo "📤 Deploying migrations using supabase db push..."
+        supabase db push
          
     - name: Notify deployment success
       if: success()
