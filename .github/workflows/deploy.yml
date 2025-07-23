@@ -246,90 +246,95 @@ jobs:
         supabase --version
         echo "✅ Supabase CLI verified and ready"
         
-    - name: Deploy database migrations using official CLI method
+    - name: Deploy database migrations (Modern CLI Method)
       env:
         SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
       run: |
-        echo "🚀 Starting database migration deployment using official CLI method..."
+        echo "🚀 Starting database migration deployment..."
         
-        # Validate required secrets are available
-        if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
-          echo "❌ SUPABASE_ACCESS_TOKEN secret is not set"
-          echo "Please add this secret to your GitHub repository settings"
-          echo "💡 Generate token at: https://supabase.com/dashboard/account/tokens"
+        # Validate secrets
+        if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_PROJECT_REF" ]; then
+          echo "❌ Missing required secrets"
+          echo "Required: SUPABASE_ACCESS_TOKEN (sbp_...) and SUPABASE_PROJECT_REF"
+          echo "💡 Create access token at: https://supabase.com/dashboard/account/tokens"
+          echo "💡 Token needs 'Database Admin' scope for migrations"
           exit 1
         fi
         
-        if [ -z "$SUPABASE_PROJECT_REF" ]; then
-          echo "❌ SUPABASE_PROJECT_REF secret is not set"
-          echo "Please add this secret to your GitHub repository settings"
-          echo "💡 Get project ref from your dashboard URL: https://supabase.com/dashboard/project/YOUR_PROJECT_REF"
+        # Validate token format
+        if [[ ! "$SUPABASE_ACCESS_TOKEN" =~ ^sbp_ ]]; then
+          echo "❌ Invalid access token format"
+          echo "Expected format: sbp_xxxxxxxxxxxxxxxx"
+          echo "💡 Ensure you're using an ACCESS TOKEN, not a service role key"
           exit 1
         fi
         
-        echo "✅ Required secrets are available"
-        echo "📋 Project ref format: ${#SUPABASE_PROJECT_REF} characters"
-        echo "🎯 Using modern CLI method (recommended for CI/CD)"
+        echo "✅ Environment configured"
+        echo "📋 Project: $SUPABASE_PROJECT_REF"
+        echo "🔑 Token format: ${SUPABASE_ACCESS_TOKEN:0:8}..."
         
-        # Check for migrations directory
-        if [ -d "supabase/migrations" ]; then
-          MIGRATION_COUNT=$(ls supabase/migrations/*.sql 2>/dev/null | wc -l)
-          echo "✅ Found migrations directory with $MIGRATION_COUNT migration files"
-          
-          # List migration files for debugging
-          echo "📋 Migration files:"
-          ls -1 supabase/migrations/*.sql 2>/dev/null | sort | sed 's/^/  - /'
-        else
-          echo "❌ Cannot find supabase/migrations directory"
-          echo "📍 Current directory: $(pwd)"
-          echo "📂 Available directories:"
-          find . -type d -name "*" | head -20
+        # Check migrations exist
+        if [ ! -d "supabase/migrations" ]; then
+          echo "❌ No migrations directory found"
+          echo "📍 Expected: supabase/migrations/"
           exit 1
         fi
         
-        # Login to Supabase using access token (required for CLI operations)
-        echo "🔐 Authenticating with Supabase using access token..."
-        if ! echo "$SUPABASE_ACCESS_TOKEN" | supabase login --token "$(cat)"; then
-          echo "❌ Failed to authenticate with Supabase"
-          echo "💡 Check if your SUPABASE_ACCESS_TOKEN is valid"
-          echo "💡 Generate new token at: https://supabase.com/dashboard/account/tokens"
+        MIGRATION_COUNT=$(ls supabase/migrations/*.sql 2>/dev/null | wc -l || echo 0)
+        echo "📁 Found $MIGRATION_COUNT migration files"
+        
+        if [ "$MIGRATION_COUNT" -eq 0 ]; then
+          echo "❌ No migration files found"
+          echo "� Directory contents:"
+          ls -la supabase/migrations/ || echo "Directory is empty"
           exit 1
         fi
-        echo "✅ Successfully authenticated with Supabase"
         
-        # Link to project using official CLI method
-        echo "🔗 Linking to Supabase project..."
+        # List migrations for visibility
+        echo "� Migration files to deploy:"
+        ls -1 supabase/migrations/*.sql | sort | sed 's/^/  ✓ /'
+        
+        # Link project (CLI automatically uses SUPABASE_ACCESS_TOKEN environment variable)
+        echo "� Linking to project..."
         if ! supabase link --project-ref "$SUPABASE_PROJECT_REF"; then
-          echo "❌ Failed to link to Supabase project"
-          echo "💡 Verify your project ref: $SUPABASE_PROJECT_REF"
-          echo "💡 Check project exists at: https://supabase.com/dashboard/project/$SUPABASE_PROJECT_REF"
-          echo "💡 Ensure your access token has the correct permissions"
+          echo "❌ Failed to link project"
+          echo ""
+          echo "� Common causes:"
+          echo "1. Invalid project reference: $SUPABASE_PROJECT_REF"
+          echo "2. Access token lacks 'Database Admin' permissions"
+          echo "3. Token is expired or invalid"
+          echo "4. Project doesn't exist or was deleted"
+          echo ""
+          echo "💡 Verify project exists: https://supabase.com/dashboard/project/$SUPABASE_PROJECT_REF"
+          echo "💡 Recreate token with 'Database Admin' scope"
           exit 1
         fi
         echo "✅ Successfully linked to project"
         
-        # Deploy migrations using the recommended CLI command with enhanced error handling
-        echo "📤 Deploying migrations using supabase db push..."
+        # Deploy migrations (Modern method - CLI uses environment token automatically)
+        echo "📤 Deploying migrations..."
         if ! supabase db push; then
-          echo "❌ Failed to deploy migrations"
+          echo "❌ Migration deployment failed"
           echo ""
           echo "🔍 Troubleshooting steps:"
-          echo "1. Check if your access token has 'Database Admin' permissions"
-          echo "2. Verify the project ref matches your project"
-          echo "3. Ensure migrations are valid SQL"
-          echo "4. Check migration history: supabase migration list"
+          echo "1. Check migration syntax with: supabase migration list"
+          echo "2. Verify migration dependencies and order"
+          echo "3. Check for conflicting schema changes"
+          echo "4. Review logs in Supabase Dashboard → Logs"
           echo ""
-          echo "💡 Try running with debug: supabase db push --debug"
+          echo "💡 Run locally first: supabase start && supabase db reset"
           
           # Show migration status for debugging
-          echo "📋 Current migration status:"
+          echo ""
+          echo "📊 Migration status:"
           supabase migration list || echo "Could not retrieve migration status"
           
           exit 1
         fi
         
-        echo "✅ Successfully deployed migrations to production"
+        echo "🎉 Successfully deployed all migrations!"
+        echo "📊 Deployment complete - check your database schema in Supabase Dashboard"
          
     - name: Notify deployment success
       if: success()
