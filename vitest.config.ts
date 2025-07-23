@@ -11,6 +11,14 @@ export default defineConfig({
     css: true,
     // Note: env test needs to control environment variables itself
     // Other tests rely on these defaults
+    // Exclude integration tests - they should only run with the integration config
+    exclude: [
+      'node_modules/**',
+      'dist/**',
+      '.git/**',
+      '.cache/**',
+      '**/*.integration.test.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
