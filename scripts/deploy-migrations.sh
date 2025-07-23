@@ -44,6 +44,15 @@ validate_env() {
         exit 1
     fi
     
+    # Check if service role key is available (optional but recommended)
+    if [ -n "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+        print_info "Service role key detected - will use for direct database access"
+        USE_SERVICE_ROLE=true
+    else
+        print_info "No service role key - will use access token method"
+        USE_SERVICE_ROLE=false
+    fi
+    
     print_success "Environment variables validated"
     print_info "Project ref: ${SUPABASE_PROJECT_REF:0:4}...${SUPABASE_PROJECT_REF: -4} (masked)"
 }
@@ -85,6 +94,51 @@ link_project() {
     fi
 }
 
+# Run migrations using service role (direct database connection)
+run_migrations_service_role() {
+    print_info "Applying migrations using service role key..."
+    
+    # Construct database URL - service role key is used as the password
+    local db_url="postgresql://postgres.${SUPABASE_PROJECT_REF}:${SUPABASE_SERVICE_ROLE_KEY}@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+    
+    # Test connection first
+    if ! psql "$db_url" -c "SELECT 1;" > /dev/null 2>&1; then
+        print_error "Failed to connect to database with service role key"
+        print_info "Please verify your SUPABASE_SERVICE_ROLE_KEY is correct"
+        return 1
+    fi
+    
+    print_success "Database connection established"
+    
+    # Apply each migration file in order
+    local applied_count=0
+    for migration_file in supabase/migrations/*.sql; do
+        if [ -f "$migration_file" ]; then
+            local filename=$(basename "$migration_file")
+            print_info "Applying migration: $filename"
+            
+            # Use psql to apply the migration directly
+            if psql "$db_url" -f "$migration_file" > /dev/null 2>&1; then
+                print_success "✅ Applied: $filename"
+                ((applied_count++))
+            else
+                # Migration might already be applied, check if it's a duplicate key error
+                local error_output=$(psql "$db_url" -f "$migration_file" 2>&1)
+                if echo "$error_output" | grep -q "already exists\|duplicate key\|relation.*already exists"; then
+                    print_warning "⚠️  Already applied: $filename"
+                else
+                    print_error "❌ Failed to apply: $filename"
+                    print_info "Error: $error_output"
+                    return 1
+                fi
+            fi
+        fi
+    done
+    
+    print_success "Applied $applied_count new migrations using service role"
+    return 0
+}
+
 # Run migrations
 run_migrations() {
     print_info "Applying database migrations..."
@@ -93,48 +147,78 @@ run_migrations() {
     if [ -d "supabase/migrations" ]; then
         migration_count=$(ls -1 supabase/migrations/*.sql 2>/dev/null | wc -l)
         print_info "Found $migration_count migration files"
+        
+        if [ "$migration_count" -eq 0 ]; then
+            print_warning "No migration files found - nothing to deploy"
+            return 0
+        fi
+    else
+        print_warning "No migrations directory found - nothing to deploy"
+        return 0
     fi
     
-    # Set non-interactive mode to avoid password prompts
-    export SUPABASE_INTERNAL_DID_WARN_ABOUT_1_X_DEPRECATION=true
+    # If service role key is available, try that first (most reliable)
+    if [ "$USE_SERVICE_ROLE" = true ]; then
+        print_info "Attempting service role migration (Recommended method)..."
+        if command -v psql &> /dev/null && run_migrations_service_role; then
+            return 0
+        else
+            print_warning "Service role method failed, falling back to CLI methods..."
+        fi
+    fi
     
-    # Method 1: Try db push with include-all flag
-    print_info "Attempting to push migrations (Method 1: --include-all)..."
-    if supabase db push --include-all 2>/dev/null; then
-        print_success "Migrations applied successfully"
+    # Method 1: Try using the Management API approach (most reliable for CI/CD)
+    print_info "Attempting to push migrations (Method 1: Management API)..."
+    if supabase db push --experimental 2>/dev/null; then
+        print_success "Migrations applied successfully using Management API"
         return 0
     fi
     
     print_warning "Method 1 failed, trying Method 2..."
     
-    # Method 2: Try with piped empty password
-    print_info "Attempting to push migrations (Method 2: empty password)..."
-    if echo "" | supabase db push 2>/dev/null; then
+    # Method 2: Try db push with include-all flag
+    print_info "Attempting to push migrations (Method 2: --include-all)..."
+    if supabase db push --include-all --password="" 2>/dev/null; then
         print_success "Migrations applied successfully"
         return 0
     fi
     
     print_warning "Method 2 failed, trying Method 3..."
     
-    # Method 3: Try with explicit non-interactive flag if available
-    print_info "Attempting to push migrations (Method 3: standard push)..."
-    if timeout 30 supabase db push < /dev/null 2>/dev/null; then
+    # Method 3: Try with linked project and skip confirmation
+    print_info "Attempting to push migrations (Method 3: force push)..."
+    export SUPABASE_INTERNAL_DID_WARN_ABOUT_1_X_DEPRECATION=true
+    if yes "" | timeout 60 supabase db push 2>/dev/null; then
         print_success "Migrations applied successfully"
         return 0
     fi
     
-    # All methods failed
+    # All methods failed - provide detailed debugging
     print_error "All migration methods failed"
-    print_info "This might be due to:"
-    print_info "1. The access token not having 'Database Admin' permissions"
-    print_info "2. Interactive authentication being required"
-    print_info "3. No pending migrations to apply"
-    print_info "4. Network or database connectivity issues"
     print_info ""
-    print_info "To fix this:"
-    print_info "1. Go to Supabase Dashboard → Settings → Access Tokens"
-    print_info "2. Ensure your token has 'Database Admin' permissions"
-    print_info "3. If using environment protection, verify secrets are set correctly"
+    print_info "🔍 Debugging Information:"
+    print_info "• Project linked: ✅ (confirmed above)"
+    print_info "• Migration files: $migration_count found"
+    print_info "• Access token: $([ -n "$SUPABASE_ACCESS_TOKEN" ] && echo "✅ Set" || echo "❌ Missing")"
+    print_info "• Service role key: $([ -n "$SUPABASE_SERVICE_ROLE_KEY" ] && echo "✅ Available" || echo "❌ Not set")"
+    print_info ""
+    print_info "💡 Recommended Solution:"
+    print_info "1. **Add Service Role Key (Most Reliable)**:"
+    print_info "   → Go to https://supabase.com/dashboard/project/$SUPABASE_PROJECT_REF/settings/api"
+    print_info "   → Copy the 'service_role' key (not anon key)"
+    print_info "   → Add as SUPABASE_SERVICE_ROLE_KEY in GitHub secrets"
+    print_info "   → Service role bypasses RLS and auth requirements"
+    print_info ""
+    print_info "2. **Alternative: Fix Access Token**:"
+    print_info "   → Go to https://supabase.com/dashboard/account/tokens"
+    print_info "   → Ensure token has 'All' or 'Database' permissions"
+    print_info "   → Regenerate token if unsure"
+    print_info ""
+    print_info "3. **Check Migration Status**:"
+    if [ -d "supabase/migrations" ] && [ "$migration_count" -gt 0 ]; then
+        print_info "   → Latest migration: $(ls -t supabase/migrations/*.sql 2>/dev/null | head -1 | xargs basename)"
+        print_info "   → Check if migrations are already applied in Dashboard"
+    fi
     
     exit 1
 }
