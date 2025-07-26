@@ -1,0 +1,384 @@
+# Prompt Board Database Schema Diagram
+
+## Overview
+This diagram represents the complete database schema for Prompt Board, a collaborative prompt management platform. The schema supports user authentication, organization management, prompt storage, categorization, context management, and workflow automation.
+
+## Database Architecture
+
+### Schema Design Principles
+- **Multi-tenancy**: Supports both personal and organization-level data
+- **Row Level Security (RLS)**: All tables have comprehensive security policies
+- **Full-text Search**: Prompts support semantic search capabilities
+- **Audit Trail**: Comprehensive created_at/updated_at tracking
+- **Data Integrity**: Foreign key constraints and check constraints
+
+## Entity Relationship Diagram
+
+```
+┌─────────────────────────────────┐
+│           auth.users            │
+│  (Supabase Auth - External)     │
+├─────────────────────────────────┤
+│ id: UUID (PK)                   │
+│ email: TEXT                     │
+│ created_at: TIMESTAMPTZ         │
+│ updated_at: TIMESTAMPTZ         │
+└─────────────────────────────────┘
+                │
+                │ 1:1
+                ▼
+┌─────────────────────────────────┐
+│           profiles              │
+├─────────────────────────────────┤
+│ id: UUID (PK, FK→auth.users)    │
+│ email: TEXT (UNIQUE, NOT NULL)  │
+│ full_name: TEXT                 │
+│ avatar_url: TEXT                │
+│ created_at: TIMESTAMPTZ         │
+│ updated_at: TIMESTAMPTZ         │
+└─────────────────────────────────┘
+                │
+      ┌─────────┼─────────┐
+      │         │         │
+      ▼         ▼         ▼
+┌─────────────────────────────────┐
+│        organizations            │
+├─────────────────────────────────┤
+│ id: UUID (PK)                   │
+│ name: VARCHAR(255) (NOT NULL)   │
+│ slug: VARCHAR(100) (UNIQUE)     │
+│ description: TEXT               │
+│ settings: JSONB                 │
+│ created_by: UUID (FK→auth.users)│
+│ created_at: TIMESTAMPTZ         │
+│ updated_at: TIMESTAMPTZ         │
+└─────────────────────────────────┘
+                │
+                │ 1:M
+                ▼
+┌─────────────────────────────────┐
+│      user_organizations         │
+├─────────────────────────────────┤
+│ id: UUID (PK)                   │
+│ user_id: UUID (FK→auth.users)   │
+│ organization_id: UUID (FK→orgs) │
+│ role: user_role (ENUM)          │
+│ joined_at: TIMESTAMPTZ          │
+│ UNIQUE(user_id, organization_id)│
+└─────────────────────────────────┘
+
+┌─────────────────────────────────┐
+│          categories             │
+├─────────────────────────────────┤
+│ id: UUID (PK)                   │
+│ name: TEXT (NOT NULL)           │
+│ description: TEXT               │
+│ color: TEXT (DEFAULT '#3B82F6') │
+│ icon: TEXT                      │
+│ user_id: UUID (FK→profiles)     │
+│ organization_id: UUID (FK→orgs) │
+│ created_at: TIMESTAMPTZ         │
+│ updated_at: TIMESTAMPTZ         │
+│ CHECK: (org_id IS NULL) XOR     │
+│        (user_id IS NULL)        │
+└─────────────────────────────────┘
+                │
+                │ 1:M
+                ▼
+┌─────────────────────────────────┐
+│            prompts              │
+├─────────────────────────────────┤
+│ id: UUID (PK)                   │
+│ user_id: UUID (FK→profiles)     │
+│ organization_id: UUID (FK→orgs) │
+│ title: TEXT (NOT NULL)          │
+│ description: TEXT               │
+│ content: TEXT (NOT NULL)        │
+│ category: TEXT (legacy)         │
+│ category_id: UUID (FK→categories)│
+│ tags: TEXT[]                    │
+│ visibility: visibility_type     │
+│ is_public: BOOLEAN (legacy)     │
+│ rating: NUMERIC(2,1)            │
+│ model_compatibility: TEXT[]     │
+│ parameters: JSONB               │
+│ is_favorite: BOOLEAN            │
+│ folder_id: UUID                 │
+│ parent_id: UUID (FK→prompts)    │
+│ is_template: BOOLEAN            │
+│ template_variables: TEXT[]      │
+│ usage_count: INTEGER            │
+│ last_used_at: TIMESTAMPTZ       │
+│ version: INTEGER                │
+│ context_id: UUID (FK→contexts)  │
+│ tsv: TSVECTOR (for search)      │
+│ created_at: TIMESTAMPTZ         │
+│ updated_at: TIMESTAMPTZ         │
+└─────────────────────────────────┘
+                │
+                │ M:M
+                ▼
+┌─────────────────────────────────┐
+│         prompt_tags             │
+├─────────────────────────────────┤
+│ id: UUID (PK)                   │
+│ prompt_id: UUID (FK→prompts)    │
+│ tag: TEXT (NOT NULL)            │
+│ created_at: TIMESTAMPTZ         │
+│ UNIQUE(prompt_id, tag)          │
+└─────────────────────────────────┘
+
+┌─────────────────────────────────┐
+│           contexts              │
+├─────────────────────────────────┤
+│ id: UUID (PK)                   │
+│ user_id: UUID (FK→profiles)     │
+│ name: TEXT (NOT NULL)           │
+│ description: TEXT               │
+│ color: TEXT (DEFAULT '#3B82F6') │
+│ icon: TEXT (DEFAULT 'folder')   │
+│ settings: JSONB                 │
+│ is_default: BOOLEAN             │
+│ is_archived: BOOLEAN            │
+│ is_active: BOOLEAN              │
+│ sort_order: INTEGER             │
+│ created_at: TIMESTAMPTZ         │
+│ updated_at: TIMESTAMPTZ         │
+│ UNIQUE(user_id, name)           │
+└─────────────────────────────────┘
+                │
+                │ 1:M
+                ▼
+┌─────────────────────────────────┐
+│       context_prompts           │
+├─────────────────────────────────┤
+│ id: UUID (PK)                   │
+│ context_id: UUID (FK→contexts)  │
+│ prompt_id: UUID (FK→prompts)    │
+│ added_at: TIMESTAMPTZ           │
+│ sort_order: INTEGER             │
+│ UNIQUE(context_id, prompt_id)   │
+└─────────────────────────────────┘
+
+┌─────────────────────────────────┐
+│        context_files            │
+├─────────────────────────────────┤
+│ id: UUID (PK)                   │
+│ context_id: UUID (FK→contexts)  │
+│ file_name: TEXT (NOT NULL)      │
+│ file_size: INTEGER              │
+│ file_type: TEXT                 │
+│ file_url: TEXT                  │
+│ file_content: TEXT              │
+│ metadata: JSONB                 │
+│ uploaded_at: TIMESTAMPTZ        │
+└─────────────────────────────────┘
+
+┌─────────────────────────────────┐
+│          workflows              │
+├─────────────────────────────────┤
+│ id: UUID (PK)                   │
+│ user_id: UUID (FK→auth.users)   │
+│ name: TEXT (NOT NULL)           │
+│ description: TEXT               │
+│ steps: JSONB (NOT NULL)         │
+│ variables: JSONB                │
+│ is_active: BOOLEAN              │
+│ is_template: BOOLEAN            │
+│ schedule: JSONB                 │
+│ tags: TEXT[]                    │
+│ run_count: INTEGER              │
+│ created_at: TIMESTAMPTZ         │
+│ updated_at: TIMESTAMPTZ         │
+└─────────────────────────────────┘
+                │
+                │ 1:M
+                ▼
+┌─────────────────────────────────┐
+│      workflow_executions       │
+├─────────────────────────────────┤
+│ id: UUID (PK)                   │
+│ workflow_id: UUID (FK→workflows)│
+│ status: TEXT (CHECK enum)       │
+│ started_at: TIMESTAMPTZ         │
+│ completed_at: TIMESTAMPTZ       │
+│ steps_completed: INTEGER        │
+│ total_steps: INTEGER            │
+│ results: JSONB                  │
+│ error: TEXT                     │
+│ created_at: TIMESTAMPTZ         │
+└─────────────────────────────────┘
+
+┌─────────────────────────────────┐
+│      workflow_templates         │
+├─────────────────────────────────┤
+│ id: UUID (PK)                   │
+│ name: TEXT (NOT NULL)           │
+│ description: TEXT               │
+│ category: TEXT                  │
+│ steps: JSONB (NOT NULL)         │
+│ variables: JSONB                │
+│ tags: TEXT[]                    │
+│ created_at: TIMESTAMPTZ         │
+│ updated_at: TIMESTAMPTZ         │
+└─────────────────────────────────┘
+```
+
+## Enums and Types
+
+### user_role (ENUM)
+- `admin`: Full organization management permissions
+- `member`: Can create and share prompts within organization
+- `viewer`: Read-only access to organization prompts
+
+### visibility_type (ENUM)
+- `private`: Only visible to the creator
+- `team`: Visible to organization members
+- `public`: Visible to everyone
+
+## Key Relationships
+
+### Primary Relationships
+1. **auth.users** → **profiles** (1:1) - User profile extension
+2. **profiles** → **organizations** (M:M via user_organizations) - Team membership
+3. **profiles** → **prompts** (1:M) - Prompt ownership
+4. **organizations** → **prompts** (1:M) - Organization-scoped prompts
+5. **categories** → **prompts** (1:M) - Prompt categorization
+6. **contexts** → **prompts** (M:M via context_prompts) - Context associations
+7. **workflows** → **workflow_executions** (1:M) - Workflow runs
+
+### Cross-table Constraints
+- Categories must belong to either a user OR organization (not both)
+- Prompts can be personal or organization-scoped
+- Context management is user-specific
+- Workflows are user-specific
+
+## Indexes and Performance
+
+### Primary Indexes
+- All tables have UUID primary keys with b-tree indexes
+- Foreign key columns are automatically indexed
+- Unique constraints create implicit indexes
+
+### Performance Indexes
+```sql
+-- Prompts (core performance)
+idx_prompts_user_id
+idx_prompts_organization_id
+idx_prompts_visibility
+idx_prompts_category_id
+idx_prompts_context_id
+idx_prompts_tsv_gin (full-text search)
+idx_prompts_user_org_visibility (composite)
+
+-- Categories
+idx_categories_user_id
+idx_categories_organization_id
+idx_categories_org_user (composite)
+
+-- Organizations
+idx_organizations_slug
+idx_organizations_created_by
+
+-- User Organizations
+idx_user_organizations_user_id
+idx_user_organizations_organization_id
+idx_user_organizations_role
+
+-- Contexts
+idx_contexts_user_id
+idx_contexts_is_default
+idx_contexts_is_active
+
+-- Workflows
+idx_workflows_user_id
+idx_workflows_is_active
+idx_workflows_tags (GIN)
+
+-- Workflow Executions
+idx_workflow_executions_workflow_id
+idx_workflow_executions_status
+```
+
+## Security Policies (RLS)
+
+### Access Control Patterns
+All tables implement Row Level Security with these patterns:
+
+1. **User-owned data**: Users can CRUD their own records
+2. **Organization data**: Members can read, admins can write
+3. **Visibility-based**: Public/team/private visibility controls
+4. **Hierarchical permissions**: Organization roles determine access levels
+
+### Key Policy Functions
+- `check_organization_membership(org_id, user_id)`: Validates membership
+- `get_user_role_in_organization(org_id, user_id)`: Returns user role
+- Organization admins inherit member permissions
+- Cross-table policy validation for data integrity
+
+## Features Supported
+
+### Core Features
+- ✅ User authentication and profiles
+- ✅ Organization management with roles
+- ✅ Prompt CRUD with visibility controls
+- ✅ Category management (user and org-scoped)
+- ✅ Full-text search with ranking
+- ✅ Context management for conversations
+- ✅ Workflow automation system
+
+### Advanced Features
+- ✅ Multi-tenancy (personal + organizational)
+- ✅ Role-based permissions
+- ✅ Full-text search with tsvector
+- ✅ Usage analytics and tracking
+- ✅ Hierarchical prompt relationships
+- ✅ Template system
+- ✅ File attachments (contexts)
+- ✅ Audit trails (created_at/updated_at)
+
+## Functions and Triggers
+
+### Automated Functions
+- `handle_new_user()`: Creates profile on user signup
+- `create_default_context_for_user()`: Creates default context
+- `add_creator_as_admin()`: Adds creator as admin to new orgs
+- `update_prompts_tsv()`: Updates full-text search vectors
+- `update_updated_at_column()`: Maintains timestamp consistency
+
+### Utility Functions
+- `increment_prompt_usage()`: Tracks prompt usage
+- `search_prompts()`: Advanced search with filtering
+- `get_prompt_stats()`: Organization analytics
+- `get_categories_with_stats()`: Category usage statistics
+- `validate_category_assignment()`: Ensures valid category access
+
+## Migration History
+
+1. **20250708161004** - Initial schema (profiles, prompts, basic RLS)
+2. **20250710101954** - Enhanced prompts (categories, tags, analytics)
+3. **20250710152749** - Additional prompt fields (rating, templates)
+4. **20250712134018** - Context management system
+5. **20250713224233** - Workflow automation tables
+6. **20250714131431** - Context active state tracking
+7. **20250720230852** - Organizations and user roles
+8. **20250720231615** - Prompt visibility and full-text search
+9. **20250720232611** - Enhanced categories with org support
+10. **20250721015944** - Fixed category constraints
+11. **20250721022222** - Automated timestamp triggers
+
+## Data Integrity
+
+### Constraints
+- Foreign key relationships maintain referential integrity
+- Check constraints validate enum values and business rules
+- Unique constraints prevent duplicate data
+- NOT NULL constraints ensure required fields
+
+### Validation
+- Email validation through Supabase Auth
+- Slug validation for organization names
+- Category ownership validation (user XOR organization)
+- Prompt visibility validation based on organization membership
+
+This schema supports a comprehensive prompt management platform with enterprise-grade security, performance, and scalability features.
