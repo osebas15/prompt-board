@@ -316,15 +316,17 @@ export class WorkflowEngine {
       case 'contains':
         return left.includes(right);
       
-      case 'greater':
+      case 'greater': {
         const leftNum = parseFloat(left);
         const rightNum = parseFloat(right);
         return !isNaN(leftNum) && !isNaN(rightNum) && leftNum > rightNum;
+      }
       
-      case 'less':
+      case 'less': {
         const leftNumLess = parseFloat(left);
         const rightNumLess = parseFloat(right);
         return !isNaN(leftNumLess) && !isNaN(rightNumLess) && leftNumLess < rightNumLess;
+      }
       
       case 'regex':
         try {

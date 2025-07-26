@@ -139,7 +139,7 @@ describe('Prompts Database Schema', () => {
       .single()
 
     // Try to access as anonymous user (should fail)
-    const { data: anonData, error: anonError } = await anonSupabase
+    const { data: anonData, error: _anonError } = await anonSupabase
       .from('prompts')
       .select('*')
       .eq('id', promptData!.id)

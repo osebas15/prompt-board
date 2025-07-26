@@ -85,7 +85,7 @@ document.createElement = vi.fn((tagName: string) => {
   
   // Ensure element has proper properties
   if (element) {
-    if (!element.hasOwnProperty('className')) {
+    if (!Object.prototype.hasOwnProperty.call(element, 'className')) {
       Object.defineProperty(element, 'className', {
         writable: true,
         value: '',

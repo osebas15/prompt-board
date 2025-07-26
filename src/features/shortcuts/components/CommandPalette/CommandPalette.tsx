@@ -105,7 +105,7 @@ export function CommandPalette({
           return newIndex;
         });
         break;
-      case 'Enter':
+      case 'Enter': {
         e.preventDefault();
         // Use the ref value which is always current
         const currentIndex = selectedIndexRef.current;
@@ -113,6 +113,7 @@ export function CommandPalette({
           onExecute(flatCommands[currentIndex]);
         }
         break;
+      }
       case 'Escape':
         onClose();
         break;

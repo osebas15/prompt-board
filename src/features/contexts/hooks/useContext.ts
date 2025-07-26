@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { ContextService } from '../services/ContextService';
 import { useContextStore } from '../stores/contextStore';
 import type { Context, CreateContextData, UpdateContextData } from '../types';
@@ -21,7 +21,7 @@ export function useContext(contextService?: ContextService) {
     getActiveContexts,
   } = useContextStore();
 
-  const service = contextService || new ContextService();
+  const service = useMemo(() => contextService || new ContextService(), [contextService]);
 
   // Load contexts on hook initialization
   const loadContexts = useCallback(async () => {
@@ -37,7 +37,7 @@ export function useContext(contextService?: ContextService) {
     } finally {
       setLoading(false);
     }
-  }, [setLoading, setError, setContexts]);
+  }, [service, setLoading, setError, setContexts]);
 
   // Initialize contexts on first load
   useEffect(() => {
