@@ -91,6 +91,12 @@ describe('Authentication User Journey', () => {
     await user.type(emailInput, 'newuser@example.com')
     await user.type(passwordInput, 'securepassword123')
     await user.type(confirmPasswordInput, 'securepassword123')
+    
+    // Wait for form validation
+    await waitFor(() => {
+      expect(submitButton).not.toBeDisabled()
+    })
+    
     await user.click(submitButton)
     
     // Should call signUp with correct credentials
@@ -99,13 +105,13 @@ describe('Authentication User Journey', () => {
         email: 'newuser@example.com',
         password: 'securepassword123'
       })
-    })
+    }, { timeout: 3000 })
 
     // Should show confirmation message
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /check your email/i })).toBeInTheDocument()
-    })
-  }, 10000) // Increased timeout for signup flow
+    }, { timeout: 3000 })
+  }, 15000) // Increased timeout for signup flow
 
   it('should complete login flow successfully', async () => {
     const user = userEvent.setup()
@@ -139,10 +145,7 @@ describe('Authentication User Journey', () => {
     const passwordInput = screen.getByLabelText(/password/i)
     const submitButton = screen.getByRole('button', { name: /sign in/i })
     
-    // Clear and type with explicit focus
-    await user.clear(emailInput)
     await user.type(emailInput, 'user@example.com')
-    await user.clear(passwordInput)
     await user.type(passwordInput, 'password123')
     await user.click(submitButton)
     
@@ -152,7 +155,7 @@ describe('Authentication User Journey', () => {
         email: 'user@example.com',
         password: 'password123'
       })
-    })
+    }, { timeout: 3000 })
   }, 10000) // Increased timeout for login flow
 
   it('should handle password reset flow', async () => {

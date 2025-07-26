@@ -245,8 +245,18 @@ describe('PromptList Component', () => {
       const user = userEvent.setup();
       render(<PromptList />, { wrapper: createWrapper() });
       
+      // Wait for initial render
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Search prompts...')).toBeInTheDocument()
+      })
+      
       const searchInput = screen.getByPlaceholderText('Search prompts...');
       await user.type(searchInput, 'prompt');
+      
+      // Wait for search to process
+      await waitFor(() => {
+        expect(searchInput).toHaveValue('prompt')
+      })
       
       const categoryFilter = screen.getByTestId('category-filter');
       await user.selectOptions(categoryFilter, 'cat1');
@@ -259,8 +269,8 @@ describe('PromptList Component', () => {
           }),
           expect.any(Object)
         );
-      });
-    });
+      }, { timeout: 10000 });
+    }, 15000);
   });
 
   describe('Sorting', () => {

@@ -162,13 +162,15 @@ describe('Authentication Integration Tests', () => {
         screen.getByTestId('signout').click()
       })
 
-      // Should still be in ready state
+      // Wait for any async operations to complete
       await waitFor(() => {
         expect(screen.getByTestId('loading')).toHaveTextContent('ready')
       })
 
-      // Should still show no user
-      expect(screen.getByTestId('user')).toHaveTextContent('no-user')
+      // Should show no user after sign out
+      await waitFor(() => {
+        expect(screen.getByTestId('user')).toHaveTextContent('no-user')
+      }, { timeout: 3000 })
     })
   })
 

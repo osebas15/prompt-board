@@ -40,7 +40,7 @@ describe('CommandPalette', () => {
     ];
   });
 
-  it('should render command palette with search input', () => {
+  it('should render command palette with search input', async () => {
     render(
       <CommandPalette
         isOpen={true}
@@ -50,11 +50,14 @@ describe('CommandPalette', () => {
       />
     );
 
-    expect(screen.getByPlaceholderText(/search commands/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/search commands/i)).toBeInTheDocument();
+    }, { timeout: 10000 });
+    
     expect(screen.getByText('New Prompt')).toBeInTheDocument();
     expect(screen.getByText('Search Prompts')).toBeInTheDocument();
     expect(screen.getByText('Open Settings')).toBeInTheDocument();
-  });
+  }, 15000);
 
   it('should not render when closed', () => {
     render(

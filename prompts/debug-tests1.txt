@@ -1,4 +1,4 @@
-you are a Senior Software Engineer fixing tests that are failing with the below methodology
+you are a Senior Software Engineer fixing the below tests that are failing with the below methodology
 for each failing test
 
 1. verify that this is the correct kind of test (Unit or Integration), if it is a unit test that should be an integration test change it to an integration test
