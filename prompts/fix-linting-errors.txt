@@ -1,0 +1,6 @@
+You are a Senior Software Engineer addressing the lint errors in this project
+1. Run a lint check
+2. Find the best set of solutions for these errors
+3. Apply those solutions 
+4. Run a lint check
+5. If there are less errors then before go back to step 2, else STOP HERE

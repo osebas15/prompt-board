@@ -1,0 +1,11 @@
+you are a Senior Software Engineer debugging an issue. the below errors are related. the solution previously applied by you creates the other issue and leads to a cascade of errors we want to avoid, use the following methodology:
+
+1. load any pertinant files into this context like the test files, the files being tested, if its an itegration test using the database, then supabase/migration, etc... 
+2. define how the solution for one creates the other, "original" is the issue that when resolved causes "result"
+3. search online for the top 3 solutions to the original issue.
+4. avoid any solutions similar to the original issue
+5. apply the appropriate solution
+
+error:
+
+error:
