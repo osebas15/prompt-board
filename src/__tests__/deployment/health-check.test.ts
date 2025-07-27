@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { HealthCheck } from '../../lib/monitoring/HealthCheck';
 import { supabase } from '../../lib/supabase';
 
-// Mock Supabase client
+// Type definitions for mocked Supabase functions
+type MockedFunction = ReturnType<typeof vi.fn>;
+
+// Mock Supabase client - using Partial type to avoid complex mock typing
 vi.mock('../../lib/supabase', () => ({
   supabase: {
     from: vi.fn(),
@@ -33,7 +36,8 @@ describe('HealthCheck', () => {
         limit: mockLimit,
       });
       
-      (supabase.from as any).mockReturnValue({
+      // Cast supabase.from as a mock function for testing
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue({
         select: mockSelect,
       });
 
@@ -60,7 +64,8 @@ describe('HealthCheck', () => {
         limit: mockLimit,
       });
       
-      (supabase.from as any).mockReturnValue({
+      // Cast supabase.from as a mock function for testing
+      (supabase.from as ReturnType<typeof vi.fn>).mockReturnValue({
         select: mockSelect,
       });
 
@@ -78,7 +83,7 @@ describe('HealthCheck', () => {
   describe('Authentication Health Check', () => {
     it('should return healthy status when auth service is accessible', async () => {
       // Arrange
-      (supabase.auth.getSession as any).mockResolvedValue({
+      (supabase.auth.getSession as MockedFunction).mockResolvedValue({
         data: { session: null },
         error: null,
       });
@@ -94,7 +99,7 @@ describe('HealthCheck', () => {
 
     it('should return unhealthy status when auth service fails', async () => {
       // Arrange
-      (supabase.auth.getSession as any).mockResolvedValue({
+      (supabase.auth.getSession as MockedFunction).mockResolvedValue({
         data: null,
         error: { message: 'Auth service unavailable' },
       });
@@ -117,7 +122,7 @@ describe('HealthCheck', () => {
         ok: true,
         status: 200,
         json: () => Promise.resolve({ status: 'ok' }),
-      } as any);
+      } as MockedFunction);
 
       // Act
       const healthCheck = new HealthCheck();
@@ -155,11 +160,11 @@ describe('HealthCheck', () => {
         error: null,
       });
       
-      (supabase.from as any).mockReturnValue({
+      (supabase.from as MockedFunction).mockReturnValue({
         select: mockSelect,
       });
 
-      (supabase.auth.getSession as any).mockResolvedValue({
+      (supabase.auth.getSession as MockedFunction).mockResolvedValue({
         data: { session: null },
         error: null,
       });
@@ -189,11 +194,11 @@ describe('HealthCheck', () => {
         error: { message: 'DB error' },
       });
       
-      (supabase.from as any).mockReturnValue({
+      (supabase.from as MockedFunction).mockReturnValue({
         select: mockSelect,
       });
 
-      (supabase.auth.getSession as any).mockResolvedValue({
+      (supabase.auth.getSession as MockedFunction).mockResolvedValue({
         data: { session: null },
         error: null,
       });

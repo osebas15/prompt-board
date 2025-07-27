@@ -1,5 +1,5 @@
 import { supabase } from '../../../lib/supabase';
-import type { Workflow, WorkflowExecution, WorkflowTemplate } from '../types';
+import type { Workflow, WorkflowExecution, WorkflowTemplate, WorkflowVariables } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 export class WorkflowStorage {
@@ -276,7 +276,7 @@ export class WorkflowStorage {
     template: WorkflowTemplate,
     userId: string,
     name: string,
-    variables: Record<string, any> = {}
+    variables: WorkflowVariables = {}
   ): Promise<Workflow> {
     // Generate unique IDs for steps
     const stepsWithIds = template.steps.map((step) => ({
@@ -376,7 +376,7 @@ export class WorkflowStorage {
       const workflowIds = (workflows || []).map(w => w.id);
       
       // Get executions for these workflows
-      let executions: any[] = [];
+      let executions: { status: string }[] = [];
       if (workflowIds.length > 0) {
         const { data: executionsData, error: executionsError } = await supabase
           .from('workflow_executions')

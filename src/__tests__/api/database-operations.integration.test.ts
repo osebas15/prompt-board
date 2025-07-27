@@ -7,6 +7,10 @@ import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../../types/database.types'
 import { faker } from '@faker-js/faker'
 
+// Type for testing invalid prompt data - we need this to be compatible with Supabase insert
+// but allow us to omit required fields for validation testing
+type TestPromptInsert = Database['public']['Tables']['prompts']['Insert']
+
 // Use local Supabase instance for testing
 const supabaseUrl = 'http://127.0.0.1:54321'
 const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
@@ -232,15 +236,17 @@ describe('Database Operations', () => {
   }, 1000) // 1 second timeout
 
   test('should enforce data validation constraints', async () => {
-    // Test missing required fields
+    // Test missing required fields - use Omit to remove title and cast for testing
+    const invalidPrompt = {
+      // title is missing - should fail
+      content: faker.lorem.paragraph(),
+      user_id: testUserId,
+      organization_id: testOrgId
+    } as Omit<TestPromptInsert, 'title'>
+
     const { error: missingTitleError } = await supabase
       .from('prompts')
-      .insert({
-        // title is missing - should fail
-        content: faker.lorem.paragraph(),
-        user_id: testUserId,
-        organization_id: testOrgId
-      } as any) // Using any to test validation
+      .insert(invalidPrompt as TestPromptInsert)
 
     expect(missingTitleError).toBeDefined()
     expect(missingTitleError!.message).toContain('null value')

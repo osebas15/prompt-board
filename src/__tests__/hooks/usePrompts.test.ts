@@ -7,7 +7,8 @@ vi.mock('@/features/prompts/services/PromptService', () => {
   return {
     ...actual,
     promptService: {
-      ...(actual as any).promptService,
+      // Cast to unknown first, then to the expected shape for mock compatibility
+      ...(actual as unknown as { promptService: object }).promptService,
       listPrompts: vi.fn(),
     },
   };

@@ -11,7 +11,12 @@ import { faker } from '@faker-js/faker'
 const supabaseUrl = 'http://127.0.0.1:54321'
 const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
 
-const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey)
+const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+})
 
 describe('Full-Text Search', () => {
   let testUserId: string

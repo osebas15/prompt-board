@@ -1,12 +1,12 @@
-import type { Workflow, WorkflowStep, WorkflowExecution } from '../types';
+import type { 
+  Workflow, 
+  WorkflowStep, 
+  WorkflowExecution, 
+  WorkflowVariables, 
+  WorkflowVariableValue,
+  StepExecutionResult 
+} from '../types';
 import { llmService } from '../../../lib/llm/services/LLMService';
-
-export interface StepExecutionResult {
-  success: boolean;
-  variables: Record<string, any>;
-  output?: any;
-  error?: string;
-}
 
 export interface WorkflowValidationResult {
   valid: boolean;
@@ -16,7 +16,7 @@ export interface WorkflowValidationResult {
 export class WorkflowEngine {
   async executeWorkflow(
     workflow: Workflow,
-    initialVariables: Record<string, any> = {}
+    initialVariables: WorkflowVariables = {}
   ): Promise<WorkflowExecution> {
     const execution: WorkflowExecution = {
       id: `exec-${Date.now()}`,
@@ -126,7 +126,7 @@ export class WorkflowEngine {
 
   async executeStep(
     step: WorkflowStep,
-    variables: Record<string, any>
+    variables: WorkflowVariables
   ): Promise<StepExecutionResult> {
     try {
       switch (step.type) {
@@ -159,7 +159,7 @@ export class WorkflowEngine {
 
   private executeVariableStep(
     step: WorkflowStep,
-    variables: Record<string, any>
+    variables: WorkflowVariables
   ): StepExecutionResult {
     const { variableName, variableValue } = step.config;
     
@@ -180,7 +180,7 @@ export class WorkflowEngine {
 
   private async executePromptStep(
     step: WorkflowStep,
-    variables: Record<string, any>
+    variables: WorkflowVariables
   ): Promise<StepExecutionResult> {
     const { promptTemplate, model = 'gpt-3.5-turbo', temperature = 0.7, maxTokens = 1000 } = step.config;
     
@@ -209,7 +209,7 @@ export class WorkflowEngine {
 
   private executeConditionStep(
     step: WorkflowStep,
-    variables: Record<string, any>
+    variables: WorkflowVariables
   ): StepExecutionResult {
     const { condition, operator = 'equals', value } = step.config;
     
@@ -231,7 +231,7 @@ export class WorkflowEngine {
 
   private async executeDelayStep(
     step: WorkflowStep,
-    variables: Record<string, any>
+    variables: WorkflowVariables
   ): Promise<StepExecutionResult> {
     const { delayMs = 1000 } = step.config;
     
@@ -245,7 +245,7 @@ export class WorkflowEngine {
 
   private async executeWebhookStep(
     step: WorkflowStep,
-    variables: Record<string, any>
+    variables: WorkflowVariables
   ): Promise<StepExecutionResult> {
     const { url, method = 'GET', headers = {}, body } = step.config;
     
@@ -278,7 +278,7 @@ export class WorkflowEngine {
     }
   }
 
-  interpolateVariables(template: string, variables: Record<string, any>): string {
+  interpolateVariables(template: string, variables: WorkflowVariables): string {
     let result = template;
     
     // Handle nested variable references first {{{{variableName}}}}

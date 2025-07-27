@@ -1,4 +1,17 @@
 // Automation and workflow types
+
+// Define more specific types for workflow variables and results
+export type WorkflowVariableValue = string | number | boolean | null;
+export type WorkflowVariables = Record<string, WorkflowVariableValue>;
+export type WorkflowResults = Record<string, StepExecutionResult>;
+
+// Define template variable configuration type
+export interface TemplateVariableConfig {
+  type: 'string' | 'number' | 'boolean';
+  default?: WorkflowVariableValue;
+  required?: boolean;
+}
+
 export interface WorkflowStep {
   id: string;
   type: 'prompt' | 'condition' | 'variable' | 'delay' | 'webhook';
@@ -23,7 +36,7 @@ export interface WorkflowStepConfig {
   
   // Variable step
   variableName?: string;
-  variableValue?: string;
+  variableValue?: WorkflowVariableValue;
   
   // Delay step
   delayMs?: number;
@@ -41,7 +54,7 @@ export interface Workflow {
   name: string;
   description?: string;
   steps: WorkflowStep[];
-  variables: Record<string, any>;
+  variables: WorkflowVariables;
   is_active: boolean;
   is_template: boolean;
   schedule?: string; // Cron expression
@@ -61,7 +74,7 @@ export interface WorkflowExecution {
   error?: string;
   steps_completed: number;
   total_steps: number;
-  results: Record<string, any>;
+  results: WorkflowResults;
 }
 
 export interface WorkflowTemplate {
@@ -70,6 +83,14 @@ export interface WorkflowTemplate {
   description: string;
   category: string;
   steps: Omit<WorkflowStep, 'id'>[];
-  variables: Record<string, { type: string; default?: any; required?: boolean }>;
+  variables: Record<string, TemplateVariableConfig>;
   tags: string[];
+}
+
+// Additional interface for step execution results (used by WorkflowEngine)
+export interface StepExecutionResult {
+  success: boolean;
+  variables: WorkflowVariables;
+  output?: WorkflowVariableValue;
+  error?: string;
 }
