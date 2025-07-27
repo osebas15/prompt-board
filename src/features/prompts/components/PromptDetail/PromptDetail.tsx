@@ -20,8 +20,8 @@ export const PromptDetail: React.FC<PromptDetailProps> = ({
   onDuplicate,
   onDelete,
   onClose,
-  showRelated = false,
-  showVersions = false,
+  showRelated: _showRelated = false,
+  showVersions: _showVersions = false,
   className = ''
 }) => {
   const [templateVariables, setTemplateVariables] = useState<Record<string, string>>({});
@@ -113,7 +113,7 @@ export const PromptDetail: React.FC<PromptDetailProps> = ({
         text: prompt?.description || '',
         url: shareUrl
       });
-    } catch (error) {
+    } catch (_error) {
       // Fallback to copying URL
       await navigator.clipboard.writeText(shareUrl);
       alert('Link copied to clipboard!');

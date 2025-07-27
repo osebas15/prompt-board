@@ -1,5 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { CommandPalette } from '../components/CommandPalette/CommandPalette';
 import type { Command } from '../types/shortcuts';
 

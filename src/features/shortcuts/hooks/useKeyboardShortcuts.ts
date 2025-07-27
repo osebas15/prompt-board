@@ -11,11 +11,21 @@ export interface KeyboardShortcut {
 export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[]) {
   const enabledShortcuts = shortcuts.filter(s => s.enabled !== false);
 
-  enabledShortcuts.forEach(({ key, action }) => {
-    useHotkeys(key, action, {
-      enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT'],
-    });
-  });
+  // Register each shortcut individually with fixed number of hook calls
+  const maxShortcuts = 10; // Set a reasonable maximum
+  
+  for (let i = 0; i < maxShortcuts; i++) {
+    const shortcut = enabledShortcuts[i];
+    useHotkeys(
+      shortcut?.key || '',
+      shortcut?.action || (() => {}),
+      {
+        enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT'],
+        enabled: !!shortcut,
+      },
+      [shortcut?.key, shortcut?.action]
+    );
+  }
 
   const getShortcutsList = useCallback(() => {
     return enabledShortcuts.map(({ key, description }) => ({

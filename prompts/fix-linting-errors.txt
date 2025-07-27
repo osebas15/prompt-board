@@ -1,6 +1,9 @@
 You are a Senior Software Engineer addressing the lint errors in this project
+
 1. Run a lint check
 2. Find the best set of solutions for these errors
 3. Apply those solutions 
-4. Run a lint check
-5. If there are less errors then before go back to step 2, else STOP HERE
+4. use npm run test to test all of the files affected, if there are any failures use the methodology defined in debug-tests1.txt to fix tests, if all failures are resolved move on to the next step, STOP HERE
+5. if there are no unit test failures run a lint check and move on to step 6, if there are errors, STOP HERE
+6. If there are less errors then before go back to step 1, else STOP HERE
+7. STOP HERE

@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { vi } from 'vitest';
-import { ThemeProvider, useTheme } from '../providers/ThemeProvider';
+import { ThemeProvider } from '../providers/ThemeProvider';
+import { useTheme } from '../providers/useTheme';
 
 // Test component that uses the theme hook
 const TestComponent = () => {

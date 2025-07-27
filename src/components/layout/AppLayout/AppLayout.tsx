@@ -8,7 +8,7 @@ import { Footer } from '../Footer/Footer';
 interface AppLayoutProps {
   children: ReactNode;
   className?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export const AppLayout = ({ children, className, ...props }: AppLayoutProps) => {

@@ -4,31 +4,6 @@ import type { CreatePrompt, UpdatePrompt, PromptFilters } from '../utils/validat
 
 describe('PromptService Unit Tests', () => {
   let promptService: PromptService;
-  
-  const mockPrompt = {
-    id: '123e4567-e89b-12d3-a456-426614174000',
-    title: 'Test Prompt',
-    content: 'Test content',
-    category: null,
-    category_id: null,
-    tags: ['test'],
-    is_public: true,
-    user_id: '550e8400-e29b-41d4-a716-446655440000',
-    usage_count: 0,
-    last_used_at: null,
-    rating: null,
-    description: null,
-    model_compatibility: null,
-    parameters: null,
-    is_favorite: false,
-    folder_id: null,
-    version: 1,
-    parent_id: null,
-    is_template: false,
-    template_variables: null,
-    created_at: '2023-01-01T00:00:00Z',
-    updated_at: '2023-01-01T00:00:00Z'
-  };
 
   beforeEach(() => {
     promptService = PromptService.getInstance();

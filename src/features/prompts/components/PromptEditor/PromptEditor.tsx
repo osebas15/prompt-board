@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useDebounce } from 'use-debounce';
@@ -97,12 +97,25 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
     }
   }, [existingPrompt, mode, reset]);
 
+  const handleAutoSave = useCallback(async () => {
+    if (!promptId || !isValid) return;
+
+    try {
+      await updatePromptMutation.mutateAsync({
+        id: promptId,
+        updates: debouncedValues as UpdatePrompt
+      });
+    } catch (error) {
+      logger.error('Auto-save failed:', error);
+    }
+  }, [promptId, isValid, updatePromptMutation, debouncedValues]);
+
   // Auto-save effect
   useEffect(() => {
     if (autoSave && isDirty && promptId && debouncedValues) {
       handleAutoSave();
     }
-  }, [debouncedValues, autoSave, isDirty, promptId]);
+  }, [debouncedValues, autoSave, isDirty, promptId, handleAutoSave]);
 
   // Extract template variables from content
   useEffect(() => {
@@ -118,20 +131,7 @@ export const PromptEditor: React.FC<PromptEditorProps> = ({
       }
     });
     setTemplateVariables(variableMap);
-  }, [watchedValues.content]);
-
-  const handleAutoSave = async () => {
-    if (!promptId || !isValid) return;
-
-    try {
-      await updatePromptMutation.mutateAsync({
-        id: promptId,
-        updates: debouncedValues as UpdatePrompt
-      });
-    } catch (error) {
-      logger.error('Auto-save failed:', error);
-    }
-  };
+  }, [watchedValues.content, templateVariables]);
 
   const onSubmit = async (data: FormData) => {
     try {

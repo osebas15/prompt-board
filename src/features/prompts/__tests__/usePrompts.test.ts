@@ -29,7 +29,6 @@ const createWrapper = ({ children }: { children: React.ReactNode }) => {
 };
 
 describe('usePrompts hook', () => {
-  let queryClient: QueryClient;
   const mockPromptsResponse = {
     data: [
       {
