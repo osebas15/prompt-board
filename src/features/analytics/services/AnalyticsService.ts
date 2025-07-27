@@ -13,6 +13,15 @@ import type {
   LiveMetrics,
 } from '../types/analytics';
 
+// Interface for the database-stored events
+interface DatabaseEvent {
+  id: string;
+  timestamp: string;
+  data: AnalyticsEvent;
+  category: string;
+  type: string;
+}
+
 export class AnalyticsService {
   private static instance: AnalyticsService;
   private sessionId: string;
@@ -117,7 +126,7 @@ export class AnalyticsService {
     await this.trackEventInternal(event);
   }
 
-  async trackPromptUsed(promptId: string, metadata?: Record<string, any>): Promise<void> {
+  async trackPromptUsed(promptId: string, metadata?: Record<string, string | number | boolean | null>): Promise<void> {
     const event: PromptEvent = {
       id: this.generateEventId(),
       userId: this.userId || 'anonymous',
@@ -131,7 +140,7 @@ export class AnalyticsService {
     await this.trackEventInternal(event);
   }
 
-  async trackSearchPerformed(query: string, resultsCount: number, filters?: Record<string, any>): Promise<void> {
+  async trackSearchPerformed(query: string, resultsCount: number, filters?: Record<string, string | number | boolean | string[]>): Promise<void> {
     const event: SearchEvent = {
       id: this.generateEventId(),
       userId: this.userId || 'anonymous',
@@ -190,7 +199,7 @@ export class AnalyticsService {
     await this.trackEventInternal(event);
   }
 
-  async trackPerformanceMetric(metric: string, value: number, unit: string, context?: Record<string, any>): Promise<void> {
+  async trackPerformanceMetric(metric: string, value: number, unit: string, context?: Record<string, string | number | boolean>): Promise<void> {
     const event: PerformanceEvent = {
       id: this.generateEventId(),
       userId: this.userId || 'anonymous',
@@ -238,7 +247,9 @@ export class AnalyticsService {
               dbQuery = dbQuery.lte(filter.field, filter.value);
               break;
             case 'in':
-              dbQuery = dbQuery.in(filter.field, filter.value);
+              if (Array.isArray(filter.value)) {
+                dbQuery = dbQuery.in(filter.field, filter.value);
+              }
               break;
             case 'like':
               dbQuery = dbQuery.ilike(filter.field, `%${filter.value}%`);
@@ -371,26 +382,27 @@ export class AnalyticsService {
       if (!events) return [];
 
       // Group events by prompt ID
-      const promptGroups = events.reduce((acc, event) => {
-        const id = (event.data as any).promptId;
+      const promptGroups = events.reduce((acc, event: DatabaseEvent) => {
+        const promptData = event.data as PromptEvent;
+        const id = promptData.promptId;
         if (!acc[id]) acc[id] = [];
         acc[id].push(event);
         return acc;
-      }, {} as Record<string, any[]>);
+      }, {} as Record<string, DatabaseEvent[]>);
 
-      return Object.entries(promptGroups).map(([id, promptEventsUnknown]) => {
-        const promptEvents = promptEventsUnknown as any[];
-        const usageEvents = promptEvents.filter((e: any) => e.data.type === 'prompt_used');
-        const createdEvent = promptEvents.find((e: any) => e.data.type === 'prompt_created');
+      return Object.entries(promptGroups).map(([id, promptEvents]) => {
+        const typedPromptEvents = promptEvents as DatabaseEvent[];
+        const usageEvents = typedPromptEvents.filter((e: DatabaseEvent) => e.data.type === 'prompt_used');
+        const createdEvent = typedPromptEvents.find((e: DatabaseEvent) => e.data.type === 'prompt_created');
 
         return {
           promptId: id,
           usageCount: usageEvents.length,
           successRate: 100, // TODO: Calculate from success/failure events
           avgResponseTime: 0, // TODO: Calculate from performance events
-          categories: createdEvent?.data.promptCategory ? [createdEvent.data.promptCategory] : [],
-          tags: createdEvent?.data.promptTags || [],
-          lastUsed: usageEvents.length > 0 ? new Date(Math.max(...usageEvents.map((e: any) => new Date(e.timestamp).getTime()))) : new Date(),
+          categories: createdEvent && (createdEvent.data as PromptEvent).promptCategory ? [(createdEvent.data as PromptEvent).promptCategory!] : [],
+          tags: createdEvent ? ((createdEvent.data as PromptEvent).promptTags || []) : [],
+          lastUsed: usageEvents.length > 0 ? new Date(Math.max(...usageEvents.map((e: DatabaseEvent) => new Date(e.timestamp).getTime()))) : new Date(),
           createdAt: createdEvent ? new Date(createdEvent.timestamp) : new Date(),
           updatedAt: new Date(),
           performanceMetrics: {

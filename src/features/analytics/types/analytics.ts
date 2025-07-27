@@ -14,14 +14,14 @@ export interface PromptEvent extends BaseEvent {
   promptId: string;
   promptCategory?: string;
   promptTags?: string[];
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface SearchEvent extends BaseEvent {
   type: 'search_performed' | 'search_result_clicked' | 'search_filter_applied';
   query: string;
   resultsCount: number;
-  filters?: Record<string, any>;
+  filters?: Record<string, string | number | boolean | string[]>;
 }
 
 export interface NavigationEvent extends BaseEvent {
@@ -37,7 +37,7 @@ export interface PerformanceEvent extends BaseEvent {
   metric: string;
   value: number;
   unit: string;
-  context?: Record<string, any>;
+  context?: Record<string, string | number | boolean>;
 }
 
 export interface ErrorEvent extends BaseEvent {
@@ -137,7 +137,7 @@ export interface WidgetConfig {
   chartType?: 'line' | 'bar' | 'pie' | 'doughnut' | 'area' | 'scatter';
   metrics: string[];
   dimensions?: string[];
-  filters?: Record<string, any>;
+  filters?: Record<string, string | number | boolean | string[]>;
   aggregation?: 'sum' | 'avg' | 'count' | 'min' | 'max';
   timeframe?: {
     start: Date;
@@ -167,7 +167,7 @@ export interface DashboardFilters {
   userId?: string;
   category?: string[];
   tags?: string[];
-  custom?: Record<string, any>;
+  custom?: Record<string, string | number | boolean | string[]>;
 }
 
 // Insights and Recommendations
@@ -186,7 +186,7 @@ export interface Insight {
   relatedMetrics: string[];
   generatedAt: Date;
   expiresAt?: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean>;
 }
 
 export interface PerformanceMetrics {
@@ -249,7 +249,7 @@ export interface ReportConfig {
   };
   metrics: string[];
   dimensions?: string[];
-  filters?: Record<string, any>;
+  filters?: Record<string, string | number | boolean | string[]>;
   groupBy?: string[];
   sortBy?: {
     field: string;
@@ -284,7 +284,7 @@ export interface Alert {
   status: 'active' | 'suppressed' | 'resolved';
   triggeredAt?: Date;
   resolvedAt?: Date;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean>;
 }
 
 export interface AlertCondition {
@@ -325,11 +325,11 @@ export interface AnalyticsQuery {
 export interface QueryFilter {
   field: string;
   operator: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'in' | 'not_in' | 'like' | 'not_like';
-  value: any;
+  value: string | number | boolean | string[] | number[] | Date;
 }
 
 export interface AnalyticsResult {
-  data: any[];
+  data: Record<string, string | number | boolean | Date>[];
   totalCount: number;
   aggregations?: Record<string, number>;
   metadata: {

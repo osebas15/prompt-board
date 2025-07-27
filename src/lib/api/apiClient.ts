@@ -2,6 +2,24 @@
 
 import { ApiError, RateLimitError, ServerError, ClientError, classifyError, isRetryableError, getRetryDelay } from '../errors/apiErrors';
 
+// Types for request body data
+type RequestBodyData = 
+  | Record<string, unknown>
+  | string 
+  | number 
+  | boolean 
+  | null 
+  | undefined
+  | Array<unknown>;
+
+// Type for error response data
+interface ErrorResponseData {
+  error?: string;
+  message?: string;
+  code?: string;
+  details?: Record<string, unknown>;
+}
+
 export interface RetryConfig {
   maxAttempts: number;
   backoffStrategy: 'linear' | 'exponential' | 'fixed';
@@ -14,7 +32,7 @@ export interface RequestConfig {
   url: string;
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   headers?: Record<string, string>;
-  body?: any;
+  body?: RequestBodyData;
   timeout?: number;
 }
 
@@ -90,7 +108,7 @@ export class ApiClient {
     return response.json();
   }
 
-  private async parseErrorResponse(response: Response): Promise<any> {
+  private async parseErrorResponse(response: Response): Promise<ErrorResponseData> {
     try {
       return await response.json();
     } catch {
@@ -98,7 +116,7 @@ export class ApiClient {
     }
   }
 
-  private createErrorFromResponse(response: Response, errorData: any): ApiError {
+  private createErrorFromResponse(response: Response, errorData: ErrorResponseData): ApiError {
     const message = errorData.error || errorData.message || response.statusText;
 
     if (response.status === 429) {

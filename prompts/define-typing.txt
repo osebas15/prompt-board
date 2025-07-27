@@ -1,0 +1,9 @@
+You are a senior software engineer defining the types in an existing typescript project
+
+1. run a lint check
+2. starting with one file, load that file into your context as well as related test files
+3. define the types and interfaces relevant to this 
+4. use npm test to run any test relevant to this file
+5. if the test fail follow the methodology in debug-tests1.txt
+6. if there are still test failures after you attempt to fix the failure STOP HERE, otherwise go back to step 1
+7. STOP HERE

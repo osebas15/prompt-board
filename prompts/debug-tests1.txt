@@ -1,6 +1,8 @@
 you are a Senior Software Engineer fixing the below tests that are failing with the below methodology
 for each failing test
 
+all integration should use the local supabase docker instance, do not mock database functions or calls
+
 1. verify that this is the correct kind of test (Unit or Integration), if it is a unit test that should be an integration test change it to an integration test
 2. verify if this test is good practice, if not remove it or fix it, and move on to the next test, else go to step 3
 3. load any local dependencies like the file being tested into this chat

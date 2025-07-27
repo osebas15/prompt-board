@@ -1,20 +1,20 @@
-import type { UseFormRegister, FieldError } from 'react-hook-form';
+import type { UseFormRegister, FieldError, Path } from 'react-hook-form';
 import { FormError } from './FormError';
 import { clsx } from 'clsx';
 
-interface FormFieldProps {
+interface FormFieldProps<T extends Record<string, unknown> = Record<string, unknown>> {
   label: string;
-  name: string;
+  name: Path<T>;
   type?: 'text' | 'email' | 'password';
   placeholder?: string;
   error?: FieldError;
-  register: UseFormRegister<any>;
+  register: UseFormRegister<T>;
   disabled?: boolean;
   required?: boolean;
   className?: string;
 }
 
-export function FormField({
+export function FormField<T extends Record<string, unknown> = Record<string, unknown>>({
   label,
   name,
   type = 'text',
@@ -24,7 +24,7 @@ export function FormField({
   disabled = false,
   required = false,
   className = ''
-}: FormFieldProps) {
+}: FormFieldProps<T>) {
   return (
     <div className={className}>
       <label 

@@ -11,7 +11,12 @@ import { faker } from '@faker-js/faker'
 const supabaseUrl = 'http://127.0.0.1:54321'
 const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
 
-const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey)
+const supabase = createClient<Database>(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+})
 
 describe('Database Query Performance', () => {
   let testUserId: string
@@ -19,7 +24,7 @@ describe('Database Query Performance', () => {
   let testPromptIds: string[] = []
 
   beforeEach(async () => {
-    // Create test user and organization
+    // Create test user and organization - using service role which bypasses RLS
     const { data: userData, error: userError } = await supabase.auth.admin.createUser({
       email: faker.internet.email(),
       password: 'testpassword123',
@@ -33,6 +38,8 @@ describe('Database Query Performance', () => {
     testUserId = userData.user.id
 
     const orgSlug = `test-org-${Date.now()}-${Math.random().toString(36).substring(2)}`
+    
+    // Insert organization directly, bypassing RLS with service role
     const { data: orgData, error: orgError } = await supabase
       .from('organizations')
       .insert({

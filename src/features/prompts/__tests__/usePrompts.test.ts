@@ -18,17 +18,14 @@ vi.mock('../services/PromptService', () => ({
   }
 }));
 
+let queryClient: QueryClient;
+
 const createWrapper = ({ children }: { children: React.ReactNode }) => {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false }
-    }
-  });
   return createElement(QueryClientProvider, { client: queryClient }, children);
 };
 
 describe('usePrompts hook', () => {
+
   const mockPromptsResponse = {
     data: [
       {
@@ -141,7 +138,7 @@ describe('usePrompts hook', () => {
         tags: ['test'],
         search: 'test query'
       };
-      const pagination = { page: 2, limit: 20 };
+      const pagination = { page: 2, limit: 20, sort_by: 'title' as const, sort_order: 'asc' as const };
 
       const { result } = renderHook(() => usePrompts(filters, pagination), {
         wrapper: createWrapper
@@ -175,16 +172,21 @@ describe('usePrompts hook', () => {
       expect(result.current.data).toBeUndefined();
     });
 
-    it('should enable/disable query based on enabled parameter', () => {
-      const { result: enabledResult } = renderHook(() => usePrompts({}, { page: 1, limit: 10 }, { enabled: true }), {
+    it('should enable/disable query based on enabled parameter', async () => {
+      const { result: enabledResult } = renderHook(() => usePrompts({}, { page: 1, limit: 10, sort_by: 'created_at', sort_order: 'desc' }, { enabled: true }), {
         wrapper: createWrapper
       });
 
-      const { result: disabledResult } = renderHook(() => usePrompts({}, { page: 1, limit: 10 }, { enabled: false }), {
+      const { result: disabledResult } = renderHook(() => usePrompts({}, { page: 1, limit: 10, sort_by: 'created_at', sort_order: 'desc' }, { enabled: false }), {
         wrapper: createWrapper
       });
 
       expect(enabledResult.current.isLoading).toBe(true);
+      
+      // Wait a bit to see if the disabled query settles
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Check that the disabled query does not have loading state after settling
       expect(disabledResult.current.isLoading).toBe(false);
     });
   });
@@ -329,7 +331,7 @@ describe('usePrompts hook', () => {
 
       const updateData = {
         id: 'test-prompt-id',
-        data: { title: 'Updated Title' } as UpdatePrompt
+        updates: { title: 'Updated Title' } as UpdatePrompt
       };
 
       result.current.mutate(updateData);
@@ -349,7 +351,7 @@ describe('usePrompts hook', () => {
 
       const updateData = {
         id: 'test-prompt-id',
-        data: { title: 'Conflicted Update' } as UpdatePrompt
+        updates: { title: 'Conflicted Update' } as UpdatePrompt
       };
 
       result.current.mutate(updateData);
