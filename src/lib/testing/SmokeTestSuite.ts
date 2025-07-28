@@ -4,25 +4,25 @@ export interface TestResult {
   success: boolean;
   error?: string;
   responseTime?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UserTestResult extends TestResult {
-  user?: any;
-  session?: any;
+  user?: unknown;
+  session?: unknown;
 }
 
 export interface PromptTestResult extends TestResult {
-  prompt?: any;
+  prompt?: unknown;
 }
 
 export interface ContextTestResult extends TestResult {
-  context?: any;
+  context?: unknown;
   expandedPrompt?: string;
 }
 
 export interface SearchTestResult extends TestResult {
-  results?: any[];
+  results?: unknown[];
   resultCount?: number;
 }
 

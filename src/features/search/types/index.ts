@@ -1,5 +1,10 @@
 // Search system types
-export interface SearchResult<T = any> {
+
+// Define more specific types for search metadata
+export type SearchMetadataValue = string | number | boolean | null;
+export type SearchMetadata = Record<string, SearchMetadataValue>;
+
+export interface SearchResult<T = GlobalSearchItem> {
   item: T;
   matches?: SearchMatch[];
   score?: number;
@@ -54,5 +59,5 @@ export interface GlobalSearchItem {
   category?: string;
   created_at: string;
   updated_at: string;
-  metadata?: Record<string, any>;
+  metadata?: SearchMetadata;
 }

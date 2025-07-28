@@ -1,10 +1,15 @@
 // Base LLM types and interfaces
+
+// Define more specific types for LLM metadata
+export type LLMMetadataValue = string | number | boolean | null;
+export type LLMMetadata = Record<string, LLMMetadataValue>;
+
 export interface LLMMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
-  metadata?: Record<string, any>;
+  metadata?: LLMMetadata;
 }
 
 export interface LLMConversation {
@@ -13,7 +18,7 @@ export interface LLMConversation {
   messages: LLMMessage[];
   created_at: Date;
   updated_at: Date;
-  metadata?: Record<string, any>;
+  metadata?: LLMMetadata;
 }
 
 export interface LLMConfig {

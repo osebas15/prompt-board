@@ -12,7 +12,7 @@ export interface QueryMetrics {
   timestamp: number
   success: boolean
   error?: string
-  metadata?: Record<string, any>
+  metadata?: unknown
 }
 
 export interface PerformanceStats {
@@ -74,7 +74,7 @@ export class PerformanceMonitor {
     duration: number,
     success: boolean,
     error?: string,
-    metadata?: Record<string, any>
+    metadata?: unknown
   ): void {
     const metric: QueryMetrics = {
       operation,

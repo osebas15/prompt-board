@@ -50,14 +50,16 @@ export class ClientError extends ApiError {
   }
 }
 
-export function classifyError(error: any, statusCode?: number): ApiError {
+export function classifyError(error: unknown, statusCode?: number): ApiError {
+  const err = error instanceof Error ? error : undefined;
+  
   // Network/connection errors
   if (error instanceof TypeError && error.message.includes('fetch')) {
     return new NetworkError('Network request failed', error);
   }
   
-  if (error.name === 'AbortError') {
-    return new NetworkError('Request was aborted', error);
+  if (err && err.name === 'AbortError') {
+    return new NetworkError('Request was aborted', err);
   }
 
   // Generic network errors (covers most fetch failures)
@@ -68,20 +70,21 @@ export function classifyError(error: any, statusCode?: number): ApiError {
   // HTTP status-based classification
   if (statusCode) {
     if (statusCode === 429) {
-      return new RateLimitError('Too many requests', undefined, error);
+      return new RateLimitError('Too many requests', undefined, err);
     }
     
     if (statusCode >= 500) {
-      return new ServerError(`Server error: ${statusCode}`, statusCode, error);
+      return new ServerError(`Server error: ${statusCode}`, statusCode, err);
     }
     
     if (statusCode >= 400) {
-      return new ClientError(`Client error: ${statusCode}`, statusCode, error);
+      return new ClientError(`Client error: ${statusCode}`, statusCode, err);
     }
   }
 
   // Generic API error
-  return new ApiError(error.message || 'Unknown API error', statusCode || 0, false, error);
+  const message = err?.message || 'Unknown API error';
+  return new ApiError(message, statusCode || 0, false, err);
 }
 
 export function isRetryableError(error: ApiError): boolean {

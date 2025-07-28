@@ -3,25 +3,20 @@
  * Wrapper around Supabase client with proper error handling and validation
  */
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database } from '../../types/database.types'
+import type { 
+  Database,
+  Prompt,
+  PromptInsert,
+  PromptUpdate,
+  Organization,
+  OrganizationInsert,
+  Category,
+  CategoryInsert,
+  Enums
+} from '../../types/database'
 import { DatabaseError } from './database-error-handling'
 
-// Type aliases for cleaner code
-type Tables = Database['public']['Tables']
-type Enums = Database['public']['Enums']
-
-// Table row types
-type Prompt = Tables['prompts']['Row']
-type PromptInsert = Tables['prompts']['Insert']
-type PromptUpdate = Tables['prompts']['Update']
-
-type Organization = Tables['organizations']['Row']
-type OrganizationInsert = Tables['organizations']['Insert']
-
-type Category = Tables['categories']['Row']
-type CategoryInsert = Tables['categories']['Insert']
-
-// Result types
+// Legacy result types (keeping for backward compatibility)
 export interface DatabaseResult<T> {
   data: T | null
   error: DatabaseError | null
@@ -37,7 +32,7 @@ export interface DatabaseListResult<T> {
 interface PromptFilters {
   search?: string
   organizationId?: string
-  visibility?: Enums['visibility_type']
+  visibility?: Enums<'visibility_type'>
   categoryId?: string
   tags?: string[]
   userId?: string

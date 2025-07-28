@@ -1,12 +1,14 @@
 import { supabase } from '../supabase';
 
+import type { PerformanceMetadata } from './types';
+
 export interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
   service: string;
   responseTime: number;
   timestamp: string;
   error?: string;
-  metadata?: Record<string, any>;
+  metadata?: PerformanceMetadata;
 }
 
 export interface OverallHealthResult {

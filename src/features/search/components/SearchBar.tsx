@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { useGlobalSearch } from '../hooks/useGlobalSearch';
-import type { SearchFilters } from '../types';
+import type { SearchFilters, GlobalSearchItem, SearchResult } from '../types';
 
 interface SearchBarProps {
   className?: string;
   placeholder?: string;
-  onResultSelect?: (result: any) => void;
+  onResultSelect?: (result: SearchResult<GlobalSearchItem>) => void;
   filters?: SearchFilters;
 }
 
@@ -38,7 +38,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   // Handle result selection
-  const handleResultClick = (result: any) => {
+  const handleResultClick = (result: SearchResult<GlobalSearchItem>) => {
     setShowResults(false);
     setIsExpanded(false);
     onResultSelect?.(result);

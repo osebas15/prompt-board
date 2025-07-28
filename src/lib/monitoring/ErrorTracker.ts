@@ -1,13 +1,13 @@
 import { supabase } from '../supabase';
 
-export interface ErrorContext {
+export interface ErrorTrackingMetadata {
   component?: string;
   action?: string;
   userId?: string;
   severity?: 'low' | 'medium' | 'high' | 'critical';
   category?: string;
   source?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface ErrorStats {
@@ -43,7 +43,7 @@ export interface ErrorReport {
 export class ErrorTracker {
   private errors: Array<{
     error: Error;
-    context: ErrorContext;
+    context: ErrorTrackingMetadata;
     timestamp: number;
   }> = [];
   
@@ -60,7 +60,7 @@ export class ErrorTracker {
   /**
    * Capture and log an error with context
    */
-  captureError(error: Error, context: ErrorContext = {}): void {
+  captureError(error: Error, context: ErrorTrackingMetadata = {}): void {
     const timestamp = Date.now();
     const enhancedContext = {
       ...context,
@@ -102,7 +102,7 @@ export class ErrorTracker {
   /**
    * Capture unhandled promise rejections
    */
-  captureUnhandledRejection(reason: any): void {
+  captureUnhandledRejection(reason: unknown): void {
     const error = reason instanceof Error ? reason : new Error(String(reason));
     
     console.error('Unhandled promise rejection:', {
@@ -121,7 +121,7 @@ export class ErrorTracker {
   /**
    * Categorize errors based on type and context
    */
-  categorizeError(error: Error, context: ErrorContext = {}): string {
+  categorizeError(error: Error, context: ErrorTrackingMetadata = {}): string {
     // Check context source first
     if (context.source) {
       if (context.source.includes('network') || context.source.includes('api')) {
@@ -172,7 +172,7 @@ export class ErrorTracker {
   /**
    * Determine error severity based on error type and context
    */
-  private determineSeverity(error: Error, context: ErrorContext): 'low' | 'medium' | 'high' | 'critical' {
+  private determineSeverity(error: Error, context: ErrorTrackingMetadata): 'low' | 'medium' | 'high' | 'critical' {
     // Critical errors
     if (error.message.includes('data loss') || error.message.includes('security')) {
       return 'critical';
@@ -204,7 +204,7 @@ export class ErrorTracker {
   /**
    * Send error to Sentry (if configured)
    */
-  private sendToSentry(error: Error, context: ErrorContext): void {
+  private sendToSentry(error: Error, context: ErrorTrackingMetadata): void {
     // In a real implementation, this would use Sentry SDK
     // For now, we'll just prepare the data structure
     const sentryData = {
@@ -243,7 +243,7 @@ export class ErrorTracker {
   /**
    * Store error in database for analysis
    */
-  async storeError(error: Error, context: ErrorContext = {}): Promise<void> {
+  async storeError(error: Error, context: ErrorTrackingMetadata = {}): Promise<void> {
     try {
       const enhancedContext = {
         ...context,

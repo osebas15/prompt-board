@@ -1,4 +1,5 @@
 import { onCLS, onINP, onLCP, onFCP, onTTFB } from 'web-vitals';
+import type { LayoutShiftEntry, PerformanceAnalyticsData } from './types';
 
 export interface WebVitalsMetric {
   name: 'CLS' | 'INP' | 'LCP' | 'FCP' | 'TTFB';
@@ -243,11 +244,11 @@ export class PerformanceMonitor {
    */
   async getCLS(): Promise<WebVitalsMetric | null> {
     if (this.isTestEnvironment) {
-      const entries = performance.getEntriesByType('layout-shift');
+      const entries = performance.getEntriesByType('layout-shift') as LayoutShiftEntry[];
       if (entries.length > 0) {
         const value = entries
-          .filter((entry: any) => !entry.hadRecentInput)
-          .reduce((sum: number, entry: any) => sum + entry.value, 0);
+          .filter((entry: LayoutShiftEntry) => !entry.hadRecentInput)
+          .reduce((sum: number, entry: LayoutShiftEntry) => sum + entry.value, 0);
         return {
           name: 'CLS',
           value,
@@ -368,7 +369,7 @@ export class PerformanceMonitor {
   /**
    * Send performance data to analytics
    */
-  sendPerformanceData(data: any): void {
+  sendPerformanceData(data: PerformanceAnalyticsData): void {
     if ('sendBeacon' in navigator) {
       const payload = JSON.stringify(data);
       navigator.sendBeacon('/analytics/performance', payload);

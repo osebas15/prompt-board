@@ -1,4 +1,4 @@
-import type { AppError, ErrorInfo, ErrorDetails, ErrorSeverity, ErrorLogEntry } from './types';
+import type { AppError, ErrorInfo, ErrorDetails, ErrorSeverity, ErrorLogEntry, ErrorContext } from './types';
 
 class ErrorLogger {
   private errors: ErrorDetails[] = [];
@@ -34,7 +34,7 @@ class ErrorLogger {
     this.sendToMonitoring(errorDetails);
   }
 
-  logWarning(message: string, context?: Record<string, any>): void {
+  logWarning(message: string, context?: ErrorContext): void {
     const warning: AppError = {
       name: 'Warning',
       message,
@@ -46,7 +46,7 @@ class ErrorLogger {
     console.warn('Warning:', warning);
   }
 
-  logInfo(message: string, context?: Record<string, any>): void {
+  logInfo(message: string, context?: ErrorContext): void {
     if (process.env.NODE_ENV === 'development') {
       console.info('Info:', { message, context, timestamp: new Date() });
     }
@@ -77,7 +77,7 @@ class ErrorLogger {
     message: string,
     severity: ErrorSeverity = 'medium',
     errorId?: string,
-    context?: Record<string, any>,
+    context?: ErrorContext,
     originalError?: Error
   ): AppError {
     const error = new Error(message) as AppError;

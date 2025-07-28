@@ -1,8 +1,13 @@
 // Error types and interfaces
+
+// Define more specific types for error context
+export type ErrorContextValue = string | number | boolean | null;
+export type ErrorContext = Record<string, ErrorContextValue>;
+
 export interface AppError extends Error {
   code?: string;
   statusCode?: number;
-  context?: Record<string, any>;
+  context?: ErrorContext;
   timestamp?: Date;
   userMessage?: string;
   severity?: ErrorSeverity;
@@ -15,7 +20,7 @@ export interface ErrorInfo {
   errorBoundary?: string;
   userId?: string;
   action?: string;
-  context?: Record<string, any>;
+  context?: ErrorContext;
 }
 
 export interface ErrorDetails {
