@@ -1,6 +1,43 @@
 import { onCLS, onINP, onLCP, onFCP, onTTFB } from 'web-vitals';
 import type { LayoutShiftEntry, PerformanceAnalyticsData } from './types';
 
+// Browser API extensions for better type safety
+interface PerformanceMemory {
+  usedJSHeapSize: number;
+  totalJSHeapSize: number;
+  jsHeapSizeLimit: number;
+}
+
+interface ExtendedPerformance extends Performance {
+  memory?: PerformanceMemory;
+}
+
+interface NetworkInformation {
+  effectiveType: '4g' | '3g' | '2g' | 'slow-2g';
+  downlink: number;
+  rtt: number;
+}
+
+interface ExtendedNavigator extends Navigator {
+  connection?: NetworkInformation;
+}
+
+// Performance entry extensions
+interface LargestContentfulPaintEntry extends PerformanceEntry {
+  renderTime: number;
+  loadTime: number;
+  size: number;
+  id: string;
+  url: string;
+  element: Element | null;
+}
+
+interface FirstInputEntry extends PerformanceEntry {
+  processingStart: number;
+  processingEnd: number;
+  cancelable: boolean;
+}
+
 export interface WebVitalsMetric {
   name: 'CLS' | 'INP' | 'LCP' | 'FCP' | 'TTFB';
   value: number;
@@ -192,7 +229,7 @@ export class PerformanceMonitor {
       // In test mode, calculate from performance entries
       const entries = performance.getEntriesByType('largest-contentful-paint');
       if (entries.length > 0) {
-        const entry = entries[entries.length - 1] as any;
+        const entry = entries[entries.length - 1] as LargestContentfulPaintEntry;
         const value = entry.startTime;
         return {
           name: 'LCP',
@@ -224,7 +261,7 @@ export class PerformanceMonitor {
     if (this.isTestEnvironment) {
       const entries = performance.getEntriesByType('first-input');
       if (entries.length > 0) {
-        const entry = entries[0] as any;
+        const entry = entries[0] as FirstInputEntry;
         const value = entry.processingStart - entry.startTime;
         return {
           name: 'INP', // Use INP name even for FID in tests
@@ -289,7 +326,7 @@ export class PerformanceMonitor {
    * Get memory usage information
    */
   getMemoryUsage(): MemoryUsage | null {
-    const memory = (performance as any).memory;
+    const memory = (performance as ExtendedPerformance).memory;
     if (!memory) return null;
 
     const used = memory.usedJSHeapSize / 1024 / 1024; // Convert to MB
@@ -306,7 +343,7 @@ export class PerformanceMonitor {
    * Get network information
    */
   getNetworkInfo(): NetworkInfo | null {
-    const connection = (navigator as any).connection;
+    const connection = (navigator as ExtendedNavigator).connection;
     if (!connection) return null;
 
     const quality = this.assessNetworkQuality(connection.effectiveType, connection.downlink);

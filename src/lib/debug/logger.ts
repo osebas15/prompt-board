@@ -11,6 +11,9 @@ const loggedMessages = new Set<string>();
 
 export type LogLevel = 'log' | 'warn' | 'error' | 'info' | 'debug';
 
+// Type for console log arguments - supports primitive types and serializable objects
+export type LogArg = string | number | boolean | null | undefined | object | Error;
+
 interface LogOptions {
   once?: boolean; // If true, log this message only once
   force?: boolean; // If true, log even when debug mode is off (for critical errors)
@@ -19,7 +22,7 @@ interface LogOptions {
 /**
  * Creates a unique key for a log message to track if it has been logged before
  */
-function createLogKey(level: LogLevel, message: string, ...args: any[]): string {
+function createLogKey(level: LogLevel, message: string, ...args: LogArg[]): string {
   const argsString = args.map(arg => 
     typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
   ).join('|');
@@ -29,7 +32,7 @@ function createLogKey(level: LogLevel, message: string, ...args: any[]): string 
 /**
  * Main debug logger function
  */
-function debugLog(level: LogLevel, message: string, options: LogOptions = {}, ...args: any[]): void {
+function debugLog(level: LogLevel, message: string, options: LogOptions = {}, ...args: LogArg[]): void {
   // Check if we should log based on debug mode and force option
   const shouldLog = isDebugMode || options.force || level === 'error';
   
@@ -72,30 +75,30 @@ function debugLog(level: LogLevel, message: string, options: LogOptions = {}, ..
  * Exported logger methods
  */
 export const logger = {
-  log: (message: string, ...args: any[]) => debugLog('log', message, {}, ...args),
-  warn: (message: string, ...args: any[]) => debugLog('warn', message, {}, ...args),
-  error: (message: string, ...args: any[]) => debugLog('error', message, {}, ...args),
-  info: (message: string, ...args: any[]) => debugLog('info', message, {}, ...args),
-  debug: (message: string, ...args: any[]) => debugLog('debug', message, {}, ...args),
+  log: (message: string, ...args: LogArg[]) => debugLog('log', message, {}, ...args),
+  warn: (message: string, ...args: LogArg[]) => debugLog('warn', message, {}, ...args),
+  error: (message: string, ...args: LogArg[]) => debugLog('error', message, {}, ...args),
+  info: (message: string, ...args: LogArg[]) => debugLog('info', message, {}, ...args),
+  debug: (message: string, ...args: LogArg[]) => debugLog('debug', message, {}, ...args),
   
   // Methods with options
-  logOnce: (message: string, ...args: any[]) => debugLog('log', message, { once: true }, ...args),
-  warnOnce: (message: string, ...args: any[]) => debugLog('warn', message, { once: true }, ...args),
-  errorOnce: (message: string, ...args: any[]) => debugLog('error', message, { once: true }, ...args),
-  infoOnce: (message: string, ...args: any[]) => debugLog('info', message, { once: true }, ...args),
-  debugOnce: (message: string, ...args: any[]) => debugLog('debug', message, { once: true }, ...args),
+  logOnce: (message: string, ...args: LogArg[]) => debugLog('log', message, { once: true }, ...args),
+  warnOnce: (message: string, ...args: LogArg[]) => debugLog('warn', message, { once: true }, ...args),
+  errorOnce: (message: string, ...args: LogArg[]) => debugLog('error', message, { once: true }, ...args),
+  infoOnce: (message: string, ...args: LogArg[]) => debugLog('info', message, { once: true }, ...args),
+  debugOnce: (message: string, ...args: LogArg[]) => debugLog('debug', message, { once: true }, ...args),
   
   // Force logging (even when debug is off)
-  forceLog: (message: string, ...args: any[]) => debugLog('log', message, { force: true }, ...args),
-  forceWarn: (message: string, ...args: any[]) => debugLog('warn', message, { force: true }, ...args),
-  forceError: (message: string, ...args: any[]) => debugLog('error', message, { force: true }, ...args),
-  forceInfo: (message: string, ...args: any[]) => debugLog('info', message, { force: true }, ...args),
+  forceLog: (message: string, ...args: LogArg[]) => debugLog('log', message, { force: true }, ...args),
+  forceWarn: (message: string, ...args: LogArg[]) => debugLog('warn', message, { force: true }, ...args),
+  forceError: (message: string, ...args: LogArg[]) => debugLog('error', message, { force: true }, ...args),
+  forceInfo: (message: string, ...args: LogArg[]) => debugLog('info', message, { force: true }, ...args),
   
   // Combination: force and once
-  forceLogOnce: (message: string, ...args: any[]) => debugLog('log', message, { force: true, once: true }, ...args),
-  forceWarnOnce: (message: string, ...args: any[]) => debugLog('warn', message, { force: true, once: true }, ...args),
-  forceErrorOnce: (message: string, ...args: any[]) => debugLog('error', message, { force: true, once: true }, ...args),
-  forceInfoOnce: (message: string, ...args: any[]) => debugLog('info', message, { force: true, once: true }, ...args),
+  forceLogOnce: (message: string, ...args: LogArg[]) => debugLog('log', message, { force: true, once: true }, ...args),
+  forceWarnOnce: (message: string, ...args: LogArg[]) => debugLog('warn', message, { force: true, once: true }, ...args),
+  forceErrorOnce: (message: string, ...args: LogArg[]) => debugLog('error', message, { force: true, once: true }, ...args),
+  forceInfoOnce: (message: string, ...args: LogArg[]) => debugLog('info', message, { force: true, once: true }, ...args),
 };
 
 /**

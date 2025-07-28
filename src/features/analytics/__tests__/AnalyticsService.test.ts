@@ -1,10 +1,38 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import type { MockedFunction } from 'vitest';
 import { AnalyticsService } from '../services/AnalyticsService';
+import type { AnalyticsEvent, PromptEvent, SearchEvent, NavigationEvent, PerformanceEvent, ErrorEvent } from '../types/analytics';
+
+// Type definitions for test mocks
+interface MockSupabaseError {
+  message: string;
+  code?: string;
+}
+
+interface MockQueryResult {
+  data: AnalyticsEvent[] | null;
+  error: MockSupabaseError | null;
+  count: number;
+}
+
+// Interface to access private AnalyticsService members in tests
+interface AnalyticsServicePrivates {
+  sessionId: string;
+  userId: string | null;
+  eventQueue: AnalyticsEvent[];
+}
+
+// Interface for static access to AnalyticsService
+interface AnalyticsServiceStatic {
+  instance: AnalyticsService | undefined;
+}
+
+type MockQueryCallback = (result: MockQueryResult) => any;
 
 // Mock Supabase
 const mockSupabaseInsert = vi.fn();
 const mockSupabaseSelect = vi.fn();
-const mockQueryResult: { data: any[] | null, error: any, count: number } = { data: [], error: null, count: 0 };
+const mockQueryResult: MockQueryResult = { data: [], error: null, count: 0 };
 
 // Create a mock query builder that always returns itself for chaining
 const createMockQueryBuilder = () => {
@@ -25,11 +53,12 @@ const createMockQueryBuilder = () => {
   
   // Make all methods return the builder for chaining, and also act as a thenable
   Object.keys(builder).forEach(key => {
-    (builder as any)[key] = vi.fn(() => {
+    const mockFn = builder[key as keyof typeof builder] as MockedFunction<any>;
+    mockFn.mockImplementation(() => {
       // Return a new object that has all the methods and is thenable
       const chainedBuilder = { ...builder };
       // Make it thenable so it can be awaited
-      (chainedBuilder as any).then = (callback: (result: any) => any) => {
+      (chainedBuilder as any).then = (callback: MockQueryCallback) => {
         return Promise.resolve(callback(mockQueryResult));
       };
       return chainedBuilder;
@@ -37,7 +66,7 @@ const createMockQueryBuilder = () => {
   });
   
   // Make the builder itself thenable
-  (builder as any).then = (callback: (result: any) => any) => {
+  (builder as any).then = (callback: MockQueryCallback) => {
     return Promise.resolve(callback(mockQueryResult));
   };
   
@@ -56,12 +85,17 @@ vi.mock('../../../lib/supabase', () => ({
 describe('AnalyticsService', () => {
   let analyticsService: AnalyticsService;
   
+  // Helper function to access private eventQueue
+  const getEventQueue = (service: AnalyticsService): AnalyticsEvent[] => {
+    return (service as unknown as AnalyticsServicePrivates).eventQueue;
+  };
+  
   beforeEach(() => {
     // Reset all mocks
     vi.clearAllMocks();
     
     // Reset singleton instance
-    (AnalyticsService as any).instance = undefined;
+    (AnalyticsService as unknown as AnalyticsServiceStatic).instance = undefined;
     
     // Setup default mock responses
     mockSupabaseInsert.mockResolvedValue({ error: null });
@@ -89,19 +123,20 @@ describe('AnalyticsService', () => {
 
     it('should generate unique session IDs', () => {
       const service1 = AnalyticsService.getInstance();
-      (AnalyticsService as any).instance = undefined;
+      // Reset instance to create a new one
+      (AnalyticsService as unknown as AnalyticsServiceStatic).instance = undefined;
       const service2 = AnalyticsService.getInstance();
       
-      expect((service1 as any).sessionId).toBeDefined();
-      expect((service2 as any).sessionId).toBeDefined();
-      expect((service1 as any).sessionId).not.toBe((service2 as any).sessionId);
+      expect((service1 as unknown as AnalyticsServicePrivates).sessionId).toBeDefined();
+      expect((service2 as unknown as AnalyticsServicePrivates).sessionId).toBeDefined();
+      expect((service1 as unknown as AnalyticsServicePrivates).sessionId).not.toBe((service2 as unknown as AnalyticsServicePrivates).sessionId);
     });
 
     it('should set user ID correctly', () => {
       const userId = 'test-user-123';
       analyticsService.setUserId(userId);
       
-      expect((analyticsService as any).userId).toBe(userId);
+      expect((analyticsService as unknown as AnalyticsServicePrivates).userId).toBe(userId);
     });
   });
 
@@ -117,10 +152,10 @@ describe('AnalyticsService', () => {
       
       await analyticsService.trackPromptCreated(promptId, category, tags);
       
-      const eventQueue = (analyticsService as any).eventQueue;
+      const eventQueue = getEventQueue(analyticsService);
       expect(eventQueue).toHaveLength(1);
       
-      const event = eventQueue[0];
+      const event = eventQueue[0] as PromptEvent;
       expect(event.type).toBe('prompt_created');
       expect(event.category).toBe('prompt');
       expect(event.promptId).toBe(promptId);
@@ -135,10 +170,10 @@ describe('AnalyticsService', () => {
       
       await analyticsService.trackPromptUsed(promptId, metadata);
       
-      const eventQueue = (analyticsService as any).eventQueue;
+      const eventQueue = getEventQueue(analyticsService);
       expect(eventQueue).toHaveLength(1);
       
-      const event = eventQueue[0];
+      const event = eventQueue[0] as PromptEvent;
       expect(event.type).toBe('prompt_used');
       expect(event.category).toBe('prompt');
       expect(event.promptId).toBe(promptId);
@@ -152,10 +187,10 @@ describe('AnalyticsService', () => {
       
       await analyticsService.trackSearchPerformed(query, resultsCount, filters);
       
-      const eventQueue = (analyticsService as any).eventQueue;
+      const eventQueue = getEventQueue(analyticsService);
       expect(eventQueue).toHaveLength(1);
       
-      const event = eventQueue[0];
+      const event = eventQueue[0] as SearchEvent;
       expect(event.type).toBe('search_performed');
       expect(event.category).toBe('search');
       expect(event.query).toBe(query);
@@ -169,10 +204,10 @@ describe('AnalyticsService', () => {
       
       await analyticsService.trackPageView(page, duration);
       
-      const eventQueue = (analyticsService as any).eventQueue;
+      const eventQueue = getEventQueue(analyticsService);
       expect(eventQueue).toHaveLength(1);
       
-      const event = eventQueue[0];
+      const event = eventQueue[0] as NavigationEvent;
       expect(event.type).toBe('page_viewed');
       expect(event.category).toBe('navigation');
       expect(event.page).toBe(page);
@@ -185,10 +220,10 @@ describe('AnalyticsService', () => {
       
       await analyticsService.trackFeatureUsed(feature, action);
       
-      const eventQueue = (analyticsService as any).eventQueue;
+      const eventQueue = getEventQueue(analyticsService);
       expect(eventQueue).toHaveLength(1);
       
-      const event = eventQueue[0];
+      const event = eventQueue[0] as NavigationEvent;
       expect(event.type).toBe('feature_accessed');
       expect(event.category).toBe('feature');
       expect(event.feature).toBe(feature);

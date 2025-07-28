@@ -1,5 +1,34 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import type { MockedFunction } from 'vitest';
 import { showToast } from '@/lib/utils/toast';
+
+// Type definitions for DOM element mocks
+interface MockHTMLElement {
+  tagName: string;
+  className: string;
+  innerHTML: string;
+  id: string;
+  style: Record<string, string | undefined>;
+  appendChild: MockedFunction<any>;
+  remove: MockedFunction<any>;
+  parentNode: Node | null;
+}
+
+interface MockContainer extends MockHTMLElement {
+  appendChild: MockedFunction<any>;
+  id: string;
+}
+
+interface MockToastElement extends MockHTMLElement {
+  className: string;
+  innerHTML: string;
+  style: {
+    transform?: string;
+    opacity?: string;
+  };
+  remove: MockedFunction<any>;
+  parentNode: Node | null;
+}
 
 // Mock DOM methods
 Object.defineProperty(document, 'createElement', {
@@ -30,13 +59,13 @@ Object.defineProperty(document.body, 'appendChild', {
 });
 
 describe('Toast Utility', () => {
-  let createElementSpy: any;
-  let getElementByIdSpy: any;
-  let appendChildSpy: any;
+  let createElementSpy: MockedFunction<any>;
+  let getElementByIdSpy: MockedFunction<any>;
+  let appendChildSpy: MockedFunction<any>;
 
   beforeEach(() => {
     // Setup fresh spies each time
-    createElementSpy = vi.fn().mockImplementation((tagName: string) => ({
+    createElementSpy = vi.fn().mockImplementation((tagName: string): MockHTMLElement => ({
       tagName: tagName.toUpperCase(),
       className: '',
       innerHTML: '',
@@ -94,20 +123,28 @@ describe('Toast Utility', () => {
     });
 
     it('should create toast with default options', () => {
-      const mockToast = {
+      const mockToast: MockToastElement = {
+        tagName: 'DIV',
         className: '',
         innerHTML: '',
+        id: '',
         style: {},
+        appendChild: vi.fn(),
         remove: vi.fn(),
         parentNode: document.body,
       };
       vi.spyOn(document, 'createElement')
         .mockReturnValueOnce({
+          tagName: 'DIV',
           id: '',
           className: '',
+          innerHTML: '',
+          style: {},
           appendChild: vi.fn(),
-        } as any)
-        .mockReturnValueOnce(mockToast as any);
+          remove: vi.fn(),
+          parentNode: null,
+        } as unknown as HTMLElement)
+        .mockReturnValueOnce(mockToast as unknown as HTMLElement);
       
       const result = showToast('Test message');
       
@@ -117,20 +154,28 @@ describe('Toast Utility', () => {
     });
 
     it('should create success toast with correct styling', () => {
-      const mockToast = {
+      const mockToast: MockToastElement = {
+        tagName: 'DIV',
         className: '',
         innerHTML: '',
+        id: '',
         style: {},
+        appendChild: vi.fn(),
         remove: vi.fn(),
         parentNode: document.body,
       };
       vi.spyOn(document, 'createElement')
         .mockReturnValueOnce({
+          tagName: 'DIV',
           id: '',
           className: '',
+          innerHTML: '',
+          style: {},
           appendChild: vi.fn(),
-        } as any)
-        .mockReturnValueOnce(mockToast as any);
+          remove: vi.fn(),
+          parentNode: null,
+        } as unknown as HTMLElement)
+        .mockReturnValueOnce(mockToast as unknown as HTMLElement);
       
       showToast('Success message', { type: 'success' });
       
@@ -139,20 +184,28 @@ describe('Toast Utility', () => {
     });
 
     it('should create error toast with correct styling', () => {
-      const mockToast = {
+      const mockToast: MockToastElement = {
+        tagName: 'DIV',
         className: '',
         innerHTML: '',
+        id: '',
         style: {},
+        appendChild: vi.fn(),
         remove: vi.fn(),
         parentNode: document.body,
       };
       vi.spyOn(document, 'createElement')
         .mockReturnValueOnce({
+          tagName: 'DIV',
           id: '',
           className: '',
+          innerHTML: '',
+          style: {},
           appendChild: vi.fn(),
-        } as any)
-        .mockReturnValueOnce(mockToast as any);
+          remove: vi.fn(),
+          parentNode: null,
+        } as unknown as HTMLElement)
+        .mockReturnValueOnce(mockToast as unknown as HTMLElement);
       
       showToast('Error message', { type: 'error' });
       
@@ -161,20 +214,28 @@ describe('Toast Utility', () => {
     });
 
     it('should create warning toast with correct styling', () => {
-      const mockToast = {
+      const mockToast: MockToastElement = {
+        tagName: 'DIV',
         className: '',
         innerHTML: '',
+        id: '',
         style: {},
+        appendChild: vi.fn(),
         remove: vi.fn(),
         parentNode: document.body,
       };
       vi.spyOn(document, 'createElement')
         .mockReturnValueOnce({
+          tagName: 'DIV',
           id: '',
           className: '',
+          innerHTML: '',
+          style: {},
           appendChild: vi.fn(),
-        } as any)
-        .mockReturnValueOnce(mockToast as any);
+          remove: vi.fn(),
+          parentNode: null,
+        } as unknown as HTMLElement)
+        .mockReturnValueOnce(mockToast as unknown as HTMLElement);
       
       showToast('Warning message', { type: 'warning' });
       
@@ -183,20 +244,28 @@ describe('Toast Utility', () => {
     });
 
     it('should position toast correctly', () => {
-      const mockContainer = {
+      const mockContainer: MockContainer = {
+        tagName: 'DIV',
         id: '',
         className: '',
+        innerHTML: '',
+        style: {},
         appendChild: vi.fn(),
+        remove: vi.fn(),
+        parentNode: null,
       };
       vi.spyOn(document, 'createElement')
-        .mockReturnValueOnce(mockContainer as any)
+        .mockReturnValueOnce(mockContainer as unknown as HTMLElement)
         .mockReturnValueOnce({
+          tagName: 'DIV',
           className: '',
           innerHTML: '',
+          id: '',
           style: {},
+          appendChild: vi.fn(),
           remove: vi.fn(),
           parentNode: document.body,
-        } as any);
+        } as unknown as HTMLElement);
       
       showToast('Test message', { position: 'bottom-left' });
       
@@ -206,23 +275,31 @@ describe('Toast Utility', () => {
     it('should auto-remove toast after specified duration', async () => {
       vi.useFakeTimers();
       
-      const mockToast = {
+      const mockToast: MockToastElement = {
+        tagName: 'DIV',
         className: '',
         innerHTML: '',
+        id: '',
         style: {
-          transform: undefined as string | undefined,
-          opacity: undefined as string | undefined,
+          transform: undefined,
+          opacity: undefined,
         },
+        appendChild: vi.fn(),
         remove: vi.fn(),
         parentNode: document.body,
       };
       vi.spyOn(document, 'createElement')
         .mockReturnValueOnce({
+          tagName: 'DIV',
           id: '',
           className: '',
+          innerHTML: '',
+          style: {},
           appendChild: vi.fn(),
-        } as any)
-        .mockReturnValueOnce(mockToast as any);
+          remove: vi.fn(),
+          parentNode: null,
+        } as unknown as HTMLElement)
+        .mockReturnValueOnce(mockToast as unknown as HTMLElement);
       
       showToast('Test message', { duration: 1000 });
       
@@ -244,23 +321,31 @@ describe('Toast Utility', () => {
     it('should handle custom duration', async () => {
       vi.useFakeTimers();
       
-      const mockToast = {
+      const mockToast: MockToastElement = {
+        tagName: 'DIV',
         className: '',
         innerHTML: '',
+        id: '',
         style: {
-          transform: undefined as string | undefined,
-          opacity: undefined as string | undefined,
+          transform: undefined,
+          opacity: undefined,
         },
+        appendChild: vi.fn(),
         remove: vi.fn(),
         parentNode: document.body,
       };
       vi.spyOn(document, 'createElement')
         .mockReturnValueOnce({
+          tagName: 'DIV',
           id: '',
           className: '',
+          innerHTML: '',
+          style: {},
           appendChild: vi.fn(),
-        } as any)
-        .mockReturnValueOnce(mockToast as any);
+          remove: vi.fn(),
+          parentNode: null,
+        } as unknown as HTMLElement)
+        .mockReturnValueOnce(mockToast as unknown as HTMLElement);
       
       showToast('Test message', { duration: 5000 });
       
@@ -278,20 +363,28 @@ describe('Toast Utility', () => {
     it('should handle removed toast gracefully', () => {
       vi.useFakeTimers();
       
-      const mockToast = {
+      const mockToast: MockToastElement = {
+        tagName: 'DIV',
         className: '',
         innerHTML: '',
+        id: '',
         style: {},
+        appendChild: vi.fn(),
         remove: vi.fn(),
         parentNode: null, // Toast already removed
       };
       vi.spyOn(document, 'createElement')
         .mockReturnValueOnce({
+          tagName: 'DIV',
           id: '',
           className: '',
+          innerHTML: '',
+          style: {},
           appendChild: vi.fn(),
-        } as any)
-        .mockReturnValueOnce(mockToast as any);
+          remove: vi.fn(),
+          parentNode: null,
+        } as unknown as HTMLElement)
+        .mockReturnValueOnce(mockToast as unknown as HTMLElement);
       
       showToast('Test message', { duration: 1000 });
       
