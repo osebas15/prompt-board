@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { MockedFunction } from 'vitest';
 import { PerformanceMonitor } from '../../lib/monitoring/PerformanceMonitor';
 
 // Mock Performance API
@@ -8,7 +9,7 @@ Object.defineProperty(global, 'performance', {
     mark: vi.fn(),
     measure: vi.fn(),
     getEntriesByName: vi.fn(),
-    getEntriesByType: vi.fn(),
+    getEntriesByType: vi.fn() as MockedFunction<typeof performance.getEntriesByType>,
   },
   writable: true,
 });
@@ -40,15 +41,17 @@ describe('PerformanceMonitor', () => {
         size: 1000,
       };
 
-      (global.performance.getEntriesByType as any).mockReturnValue([mockLCPEntry]);
+      (global.performance.getEntriesByType as MockedFunction<typeof performance.getEntriesByType>)
+        .mockReturnValue([mockLCPEntry as unknown as PerformanceEntry]);
 
       // Act
       const monitor = new PerformanceMonitor();
       const lcp = await monitor.getLCP();
 
       // Assert
-      expect(lcp.value).toBe(1500);
-      expect(lcp.rating).toBe('good'); // LCP < 2.5s is good
+      expect(lcp).not.toBeNull();
+      expect(lcp!.value).toBe(1500);
+      expect(lcp!.rating).toBe('good'); // LCP < 2.5s is good
     });
 
     it('should track First Input Delay (FID)', async () => {
@@ -59,15 +62,17 @@ describe('PerformanceMonitor', () => {
         startTime: 50,
       };
 
-      (global.performance.getEntriesByType as any).mockReturnValue([mockFIDEntry]);
+      (global.performance.getEntriesByType as MockedFunction<typeof performance.getEntriesByType>)
+        .mockReturnValue([mockFIDEntry as unknown as PerformanceEntry]);
 
       // Act
       const monitor = new PerformanceMonitor();
       const fid = await monitor.getFID();
 
       // Assert
-      expect(fid.value).toBe(50); // processingStart - startTime
-      expect(fid.rating).toBe('good'); // FID < 100ms is good
+      expect(fid).not.toBeNull();
+      expect(fid!.value).toBe(50); // processingStart - startTime
+      expect(fid!.rating).toBe('good'); // FID < 100ms is good
     });
 
     it.skip('should track Cumulative Layout Shift (CLS)', async () => {
@@ -77,15 +82,17 @@ describe('PerformanceMonitor', () => {
         { entryType: 'layout-shift', value: 0.05, hadRecentInput: false },
       ];
 
-      (global.performance.getEntriesByType as any).mockReturnValue(mockCLSEntries);
+      (global.performance.getEntriesByType as MockedFunction<typeof performance.getEntriesByType>)
+        .mockReturnValue(mockCLSEntries as unknown as PerformanceEntry[]);
 
       // Act
       const monitor = new PerformanceMonitor();
       const cls = await monitor.getCLS();
 
       // Assert - Use toBeCloseTo for floating point comparison
-      expect(cls.value).toBeCloseTo(0.15, 10); // Sum of layout shifts
-      expect(cls.rating).toBe('good'); // CLS < 0.1 is good
+      expect(cls).not.toBeNull();
+      expect(cls!.value).toBeCloseTo(0.15, 10); // Sum of layout shifts
+      expect(cls!.rating).toBe('good'); // CLS < 0.1 is good
     });
 
     it('should provide rating for poor Core Web Vitals', async () => {
@@ -95,14 +102,16 @@ describe('PerformanceMonitor', () => {
         startTime: 5000, // Poor LCP > 4s
       };
 
-      (global.performance.getEntriesByType as any).mockReturnValue([mockLCPEntry]);
+      (global.performance.getEntriesByType as MockedFunction<typeof performance.getEntriesByType>)
+        .mockReturnValue([mockLCPEntry as unknown as PerformanceEntry]);
 
       // Act
       const monitor = new PerformanceMonitor();
       const lcp = await monitor.getLCP();
 
       // Assert
-      expect(lcp.rating).toBe('poor');
+      expect(lcp).not.toBeNull();
+      expect(lcp!.rating).toBe('poor');
     });
   });
 
@@ -126,7 +135,8 @@ describe('PerformanceMonitor', () => {
         },
       ];
 
-      (global.performance.getEntriesByType as any).mockReturnValue(mockResourceEntries);
+      (global.performance.getEntriesByType as MockedFunction<typeof performance.getEntriesByType>)
+        .mockReturnValue(mockResourceEntries as unknown as PerformanceEntry[]);
 
       // Act
       const monitor = new PerformanceMonitor();
@@ -151,7 +161,8 @@ describe('PerformanceMonitor', () => {
         },
       ];
 
-      (global.performance.getEntriesByType as any).mockReturnValue(mockResourceEntries);
+      (global.performance.getEntriesByType as MockedFunction<typeof performance.getEntriesByType>)
+        .mockReturnValue(mockResourceEntries as unknown as PerformanceEntry[]);
 
       // Act
       const monitor = new PerformanceMonitor();
@@ -181,9 +192,10 @@ describe('PerformanceMonitor', () => {
       const memory = monitor.getMemoryUsage();
 
       // Assert
-      expect(memory.used).toBe(50);
-      expect(memory.total).toBe(100);
-      expect(memory.utilization).toBe(0.5); // 50%
+      expect(memory).not.toBeNull();
+      expect(memory!.used).toBe(50);
+      expect(memory!.total).toBe(100);
+      expect(memory!.utilization).toBe(0.5); // 50%
     });
 
     it('should handle memory API unavailability', () => {
@@ -205,7 +217,7 @@ describe('PerformanceMonitor', () => {
   describe('Performance Reporting', () => {
     it('should generate comprehensive performance report', async () => {
       // Arrange
-      const mockEntries = {
+      const mockEntries: Record<string, unknown[]> = {
         'largest-contentful-paint': [{ startTime: 1500 }],
         'first-input': [{ processingStart: 100, startTime: 50 }],
         'layout-shift': [{ value: 0.05, hadRecentInput: false }],
@@ -219,9 +231,10 @@ describe('PerformanceMonitor', () => {
         ],
       };
 
-      (global.performance.getEntriesByType as any).mockImplementation((type) => 
-        mockEntries[type] || []
-      );
+      (global.performance.getEntriesByType as MockedFunction<typeof performance.getEntriesByType>)
+        .mockImplementation((type: string) => 
+          (mockEntries[type] || []) as PerformanceEntry[]
+        );
 
       // Act
       const monitor = new PerformanceMonitor();
@@ -233,15 +246,25 @@ describe('PerformanceMonitor', () => {
       expect(report).toHaveProperty('timing');
       expect(report).toHaveProperty('memory');
       expect(report.timestamp).toBeDefined();
-      expect(report.coreWebVitals.lcp.value).toBe(1500);
+      expect(report.coreWebVitals.lcp).not.toBeNull();
+      expect(report.coreWebVitals.lcp!.value).toBe(1500);
     });
 
     it('should send performance data to analytics endpoint', () => {
       // Arrange
       const mockData = {
-        lcp: 1500,
-        fid: 50,
-        cls: 0.05,
+        type: 'web-vital',
+        metric: {
+          name: 'LCP',
+          value: 1500,
+          rating: 'good',
+          delta: 1500,
+          id: 'test-lcp',
+          timestamp: Date.now()
+        },
+        url: 'http://localhost',
+        userAgent: 'test-agent',
+        timestamp: Date.now()
       };
 
       // Act

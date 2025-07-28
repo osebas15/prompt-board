@@ -79,7 +79,7 @@ describe('Database Query Performance', () => {
       user_id: testUserId,
       organization_id: testOrgId,
       tags: [faker.word.noun(), faker.word.verb()],
-      visibility: faker.helpers.arrayElement(['private', 'team', 'public']) as any
+      visibility: faker.helpers.arrayElement(['private', 'team', 'public'] as const)
     }))
 
     // Insert in batches to avoid timeout
@@ -180,7 +180,7 @@ describe('Database Query Performance', () => {
       organization_id: testOrgId,
       category: faker.helpers.arrayElement(categories),
       tags: faker.helpers.arrayElements(tags, { min: 1, max: 3 }),
-      visibility: faker.helpers.arrayElement(['private', 'team', 'public']) as any
+      visibility: faker.helpers.arrayElement(['private', 'team', 'public'] as const)
     }))
 
     const { data, error } = await supabase

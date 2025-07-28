@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type MockedFunction } from 'vitest';
 import { ErrorTracker } from '../../lib/monitoring/ErrorTracker';
 import { supabase } from '../../lib/supabase';
 
@@ -150,9 +150,9 @@ describe('ErrorTracker', () => {
         error: null,
       });
       
-      (supabase.from as any).mockReturnValue({
+      (supabase.from as MockedFunction<typeof supabase.from>).mockReturnValue({
         insert: mockInsert,
-      });
+      } as unknown as ReturnType<typeof supabase.from>);
 
       const error = new Error('Test error');
       const errorTracker = new ErrorTracker();
@@ -182,9 +182,9 @@ describe('ErrorTracker', () => {
         error: { message: 'Storage failed' },
       });
       
-      (supabase.from as any).mockReturnValue({
+      (supabase.from as MockedFunction<typeof supabase.from>).mockReturnValue({
         insert: mockInsert,
-      });
+      } as unknown as ReturnType<typeof supabase.from>);
 
       const error = new Error('Test error');
       const errorTracker = new ErrorTracker();
