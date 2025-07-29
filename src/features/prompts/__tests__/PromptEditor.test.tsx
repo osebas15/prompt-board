@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -277,10 +277,11 @@ describe('PromptEditor Component', () => {
       const contentInput = screen.getByTestId('content-input') as HTMLTextAreaElement;
       const longContent = 'x'.repeat(10001);
       
-      // Use paste method for large content to avoid timeout
+      // Use direct value setting for large content to avoid timeout
       await user.clear(contentInput);
       await user.click(contentInput);
-      await user.paste(longContent);
+      contentInput.value = longContent;
+      contentInput.dispatchEvent(new Event('input', { bubbles: true }));
       
       expect(screen.getByTestId('character-count')).toHaveTextContent('10001 / 10000 characters');
     });
@@ -320,9 +321,7 @@ describe('PromptEditor Component', () => {
       render(<PromptEditor />, { wrapper: createWrapper() });
       
       const contentInput = screen.getByTestId('content-input');
-      // Use paste to avoid issues with curly braces being interpreted as key combinations
-      await user.click(contentInput);
-      await user.paste('Content with {{newVariable}}');
+      await user.type(contentInput, 'Content with {{newVariable}}');
       
       // In a real implementation, this would update automatically
       expect(contentInput).toHaveValue('Content with {{newVariable}}');
