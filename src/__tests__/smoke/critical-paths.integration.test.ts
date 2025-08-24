@@ -1,13 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 import { SmokeTestSuite } from '../../lib/testing/SmokeTestSuite';
+import { isSupabaseAvailable } from '../../test/utils/supabaseAvailability';
 
 // Integration test for critical user flows
 // This will use the local Supabase instance
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:54321';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
 
-describe('Critical User Path Smoke Tests', () => {
+// Check if Supabase is available before running tests
+const supabaseAvailable = await isSupabaseAvailable();
+
+describe.skipIf(!supabaseAvailable)('Critical User Path Smoke Tests', () => {
   let supabase: ReturnType<typeof createClient>;
   let testUserId: string;
 
